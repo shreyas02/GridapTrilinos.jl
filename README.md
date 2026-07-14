@@ -1,30 +1,188 @@
 # GridapTrilinos
 
-This code base is using the [Julia Language](https://julialang.org/) and
-[DrWatson](https://juliadynamics.github.io/DrWatson.jl/stable/)
-to make a reproducible scientific project named
-> GridapTrilinos
+GridapTrilinos is a Julia interface for using Trilinos linear solvers from
+Gridap/GridapDistributed workflows. The Julia side provides a `TrilinosSolve`
+linear solver, while the Trilinos, Tpetra, Belos, FROSch, and Kokkos calls live
+in a small C++ shared library exposed to Julia with CxxWrap.
 
 It is authored by Shreyas Prashanth.
 
-To (locally) reproduce this project, do the following:
+## Workflow
 
-0. Download this code base. Notice that raw data are typically not included in the
-   git-history and may need to be downloaded independently.
-1. Open a Julia console and do:
-   ```
-   julia> using Pkg
-   julia> Pkg.add("DrWatson") # install globally, for using `quickactivate`
-   julia> Pkg.activate("path/to/this/project")
-   julia> Pkg.instantiate()
-   ```
+There are four parts to the workflow:
 
-This will install all necessary packages for you to be able to run the scripts and
-everything should work out of the box, including correctly finding local paths.
+1. Install the Julia package dependencies.
+2. Configure `MPI.jl` to use the same MPI implementation as Trilinos.
+3. Build the C++ shared library against your local Trilinos installation.
+4. Load `GridapTrilinos` and use `TrilinosSolve` as a Gridap linear solver.
 
-You may notice that most scripts start with the commands:
+## Julia Setup
+
+From the repository root:
+
 ```julia
-using DrWatson
-@quickactivate "GridapTrilinos"
+using Pkg
+Pkg.activate(".")
+Pkg.instantiate()
 ```
-which auto-activate the project and enable local path handling from DrWatson.
+
+This installs the Julia dependencies, including `Gridap`, `GridapDistributed`,
+`PartitionedArrays`, `CxxWrap`, `MPIPreferences`, and `libcxxwrap_julia_jll`.
+
+## MPI Compatibility
+
+The MPI used by Julia must be the same MPI implementation used to build
+Trilinos. This package uses Trilinos' MPI on the C++ side, while
+`GridapDistributed` reaches MPI through `MPI.jl`. If those are different MPI
+runtimes, the process can fail at load time or hang/crash during communication.
+
+Configure `MPI.jl` through `MPIPreferences` before building this package. For a
+typical system MPI installation:
+
+```julia
+using Pkg
+Pkg.activate(".")
+Pkg.add("MPIPreferences")
+
+using MPIPreferences
+MPIPreferences.use_system_binary()
+```
+
+If `libmpi` is not in the dynamic linker search path, pass the library location:
+
+```julia
+using MPIPreferences
+MPIPreferences.use_system_binary(;
+    library_names = ["/path/to/mpi/lib/libmpi.so"],
+    mpiexec = "/path/to/mpi/bin/mpiexec",
+)
+```
+
+Restart Julia after changing `MPIPreferences`. Then instantiate/build the
+package. `deps/build.jl` checks that `MPI.jl` is configured for `"system"` MPI
+before compiling the C++ wrapper.
+
+## Building The C++ Library
+
+The C++ wrapper must be built before calling the Trilinos solver. The generated
+file is a shared library, not a portable source file, so each user builds it
+locally against their own Julia, MPI, and Trilinos installation.
+
+Set `TRILINOS_ROOT` to the Trilinos installation prefix, then build through
+Julia's package build step:
+
+```bash
+export TRILINOS_ROOT=/path/to/TrilinosInstall
+julia --project=. -e 'using Pkg; Pkg.build("GridapTrilinos")'
+```
+
+This calls `deps/build.jl`, which delegates to `src/Sharedlib/configure.sh`.
+You can also call the script directly:
+
+```bash
+export TRILINOS_ROOT=/path/to/TrilinosInstall
+src/Sharedlib/configure.sh
+```
+
+The build configures CMake in `src/Sharedlib/build/` and creates:
+
+```text
+src/GridapTrilinos.so
+```
+
+This file is generated and ignored by git. If it is missing, `using
+GridapTrilinos` still works, but any call into the Trilinos solver throws an
+error telling you to build the shared library first.
+
+## Initialisation
+
+Loading the package performs the CxxWrap and Kokkos setup:
+
+```julia
+using GridapTrilinos
+```
+
+When `src/GridapTrilinos.so` exists, the package:
+
+- loads the C++ module with CxxWrap,
+- calls `KokkosInitialize()` during Julia module initialisation,
+- registers `KokkosFinalize()` with `atexit`.
+
+You normally do not need to call `KokkosInitialize()` or `KokkosFinalize()`
+manually.
+
+## Usage
+
+Create a solver from a Trilinos XML parameter file:
+
+```julia
+using GridapTrilinos
+
+solver = TrilinosSolve("path/to/trilinos_parameters.xml")
+```
+
+Optionally set the estimated maximum number of nonzeros per local matrix row:
+
+```julia
+solver = TrilinosSolve("path/to/trilinos_parameters.xml", 100)
+```
+
+`TrilinosSolve` implements the Gridap linear solver interface, so it is intended
+to be passed wherever a `Gridap.Algebra.LinearSolver` is expected. Internally,
+the solver receives the distributed Gridap matrix/vector partitions, builds the
+corresponding Trilinos/Tpetra objects, applies the preconditioner and Belos
+solver described in the XML file, and copies the local solution back into the
+Gridap vector.
+
+After a solve has run, inspect the recorded solver result:
+
+```julia
+result = solver.log
+
+result.name
+result.num_iters
+result.residual
+result.solve_time
+```
+
+The lower-level C++ entry point `TrilinosParallel(...)` is exported for direct
+use, but typical Gridap usage should go through `TrilinosSolve`.
+
+## Development Checks
+
+Run the package tests from the repository root:
+
+```bash
+julia --project=. test/runtests.jl
+```
+
+The default test run checks that the distributed Poisson workflow is loadable,
+but skips the full MPI/Trilinos solve. To run the solver workflow test, add the
+XML file at `test/poisson_frosch.xml` and launch with 4 MPI ranks:
+
+```bash
+GRIDAPTRILINOS_RUN_SOLVER_TEST=true \
+  mpiexecjl --project=. -n 4 julia test/runtests.jl
+```
+
+To use a different XML file:
+
+```bash
+GRIDAPTRILINOS_RUN_SOLVER_TEST=true \
+GRIDAPTRILINOS_PARAMETER_FILE=test/my_parameters.xml \
+  mpiexecjl --project=. -n 4 julia test/runtests.jl
+```
+
+The residual tolerance defaults to `1.0e-8`. Override it with:
+
+```bash
+GRIDAPTRILINOS_RUN_SOLVER_TEST=true \
+GRIDAPTRILINOS_RESIDUAL_TOL=1.0e-10 \
+  mpiexecjl --project=. -n 4 julia test/runtests.jl
+```
+
+Rebuild the C++ library after changing files in `src/Sharedlib/`:
+
+```bash
+src/Sharedlib/configure.sh
+```

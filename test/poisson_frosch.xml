@@ -1,0 +1,24 @@
+<ParameterList name="FROSch SOLVER">
+    <Parameter name="Belos Solver Type"                    type="string" value="GMRES"/>
+    <ParameterList name="Belos List">
+        <Parameter name="Block Size"                       type="int"    value="1"/>
+        <Parameter name="Convergence Tolerance"            type="double" value="1e-8"/>
+        <Parameter name="Maximum Iterations"               type="int"    value="1000"/>
+        <Parameter name="Verbosity"                        type="int"    value="33" />
+        <Parameter name="Output Style"                     type="int"    value="1" />
+        <Parameter name="Output Frequency"                 type="int"    value="1"/>
+        <Parameter name="Explicit Residual Test"           type="bool"   value="false"/>
+    </ParameterList>
+    <ParameterList name="Preconditioner List">
+        <Parameter name="OverlappingOperator Type"         type="string" value="AlgebraicOverlappingOperator"/>
+        <Parameter name="Dimension"                        type="int"    value="2"/>
+        <Parameter name="Overlap"                          type="int"    value="2"/>
+        <ParameterList name="AlgebraicOverlappingOperator">
+            <Parameter name="Combine Values in Overlap"    type="string" value="Full"/>
+            <ParameterList name="Solver">
+                <Parameter name="SolverType"               type="string" value="Amesos2"/>
+                <Parameter name="Solver"                   type="string" value="Umfpack"/>
+            </ParameterList>
+        </ParameterList>
+    </ParameterList>
+</ParameterList>
