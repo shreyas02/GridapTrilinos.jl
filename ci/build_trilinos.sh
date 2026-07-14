@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BUILD_TYPE="${BUILD_TYPE:-RELEASE}"
+BUILD_TYPE="${BUILD_TYPE:-Release}"
 TRILINOS_SOURCE="${TRILINOS_SOURCE:-.ci/TrilinosSrc}"
 TRILINOS_BUILD="${TRILINOS_BUILD:-.ci/TrilinosBuild}"
 TRILINOS_INSTALL="${TRILINOS_INSTALL:-.ci/trilinos-install}"
