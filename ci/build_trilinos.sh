@@ -21,6 +21,8 @@ mkdir -p "${build_dir}" "${install_dir}"
 cmake -S "${source_dir}" -B "${build_dir}" -G Ninja \
   -D CMAKE_BUILD_TYPE="${BUILD_TYPE}" \
   -D CMAKE_INSTALL_PREFIX:PATH="${install_dir}" \
+  -D BUILD_SHARED_LIBS:BOOL=ON \
+  -D CMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON \
   -D CMAKE_C_COMPILER=mpicc \
   -D CMAKE_CXX_COMPILER=mpicxx \
   -D CMAKE_Fortran_COMPILER=mpif90 \
