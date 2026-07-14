@@ -14,24 +14,87 @@ jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
+    env:
+      TRILINOS_TAG: trilinos-release-16-1-0
+      TRILINOS_ROOT: ${{ github.workspace }}/.ci/trilinos-install
     strategy:
       fail-fast: false
       matrix:
         version:
           - '1'
         os:
-          - ubuntu-latest
+          - ubuntu-24.04
         arch:
           - x64
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install MPI and Trilinos build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build g++ gfortran git \
+            openmpi-bin libopenmpi-dev \
+            libblas-dev liblapack-dev libsuitesparse-dev
+
+      - name: Cache Trilinos install
+        id: cache-trilinos
+        uses: actions/cache@v4
+        with:
+          path: .ci/trilinos-install
+          key: ${{ runner.os }}-${{ matrix.arch }}-${{ env.TRILINOS_TAG }}-${{ hashFiles('ci/build_trilinos.sh') }}
+
+      - name: Clone Trilinos
+        if: steps.cache-trilinos.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .ci
+          git clone --depth 1 --branch "${TRILINOS_TAG}" https://github.com/trilinos/Trilinos .ci/TrilinosSrc
+
+      - name: Build Trilinos
+        if: steps.cache-trilinos.outputs.cache-hit != 'true'
+        run: ci/build_trilinos.sh
+
+      - name: Verify Trilinos install
+        run: |
+          trilinos_config="$(find "${TRILINOS_ROOT}" -path '*/cmake/Trilinos/TrilinosConfig.cmake' -print -quit)"
+          test -n "${trilinos_config}"
+          grep -E 'Trilinos_VERSION|Trilinos_PACKAGE_LIST' "${trilinos_config}"
+          grep -q 'MueLu' "${trilinos_config}"
+          grep -q 'ShyLU_DDFROSch' "${trilinos_config}"
+          echo "TRILINOS_ROOT=${TRILINOS_ROOT}" >> "$GITHUB_ENV"
+          echo "Trilinos_DIR=$(dirname "${trilinos_config}")" >> "$GITHUB_ENV"
+
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
-      - uses: julia-actions/julia-buildpkg@v1
 
-      - name: Run tests
-        run: >
-          julia --project=. --color=yes test/runtests.jl
+      - name: Instantiate Julia environment
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Configure Julia MPI
+        run: |
+          julia --project=. -e 'using MPIPreferences; MPIPreferences.use_system_binary(; library_names=["libmpi"], mpiexec="mpiexec", force=true)'
+          julia --project=. -e 'using MPI; MPI.install_mpiexecjl(; force=true)'
+          echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
+
+      - name: Build GridapTrilinos shared library
+        env:
+          TRILINOS_ROOT: ${{ env.TRILINOS_ROOT }}
+          LD_LIBRARY_PATH: ${{ env.TRILINOS_ROOT }}/lib:${{ env.TRILINOS_ROOT }}/lib64
+        run: julia --project=. -e 'using Pkg; Pkg.build("GridapTrilinos")'
+
+      - name: Run default tests
+        env:
+          TRILINOS_ROOT: ${{ env.TRILINOS_ROOT }}
+          LD_LIBRARY_PATH: ${{ env.TRILINOS_ROOT }}/lib:${{ env.TRILINOS_ROOT }}/lib64
+        run: julia --project=. --color=yes test/runtests.jl
+
+      - name: Run Poisson FROSch MPI test
+        env:
+          GRIDAPTRILINOS_RUN_SOLVER_TEST: "true"
+          OMPI_MCA_rmaps_base_oversubscribe: "1"
+          TRILINOS_ROOT: ${{ env.TRILINOS_ROOT }}
+          LD_LIBRARY_PATH: ${{ env.TRILINOS_ROOT }}/lib:${{ env.TRILINOS_ROOT }}/lib64
+        run: mpiexecjl --project=. -n 4 julia --startup-file=no --color=yes test/runtests.jl
