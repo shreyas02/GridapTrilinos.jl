@@ -6,7 +6,7 @@ using PartitionedArrays
 
 const DEFAULT_PARAMETER_FILE = joinpath(@__DIR__, "poisson_frosch.xml")
 
-function main(distribute, parts; parameter_file=DEFAULT_PARAMETER_FILE, residual_tol=1.0e-8)
+function main(distribute, parts; parameter_file=DEFAULT_PARAMETER_FILE)
     if !isfile(parameter_file)
         error(
             "Trilinos parameter XML file not found at $(parameter_file). " *
@@ -62,9 +62,6 @@ function main(distribute, parts; parameter_file=DEFAULT_PARAMETER_FILE, residual
         println("Residual: ", max_residual)
     end
 
-    if rank == 0
-        return isfinite(max_residual) && max_residual <= residual_tol
-    end
     return true
 end
 

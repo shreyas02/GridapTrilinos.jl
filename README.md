@@ -173,14 +173,6 @@ GRIDAPTRILINOS_PARAMETER_FILE=test/my_parameters.xml \
   mpiexecjl --project=. -n 4 julia test/runtests.jl
 ```
 
-The residual tolerance defaults to `1.0e-8`. Override it with:
-
-```bash
-GRIDAPTRILINOS_RUN_SOLVER_TEST=true \
-GRIDAPTRILINOS_RESIDUAL_TOL=1.0e-10 \
-  mpiexecjl --project=. -n 4 julia test/runtests.jl
-```
-
 Rebuild the C++ library after changing files in `src/Sharedlib/`:
 
 ```bash

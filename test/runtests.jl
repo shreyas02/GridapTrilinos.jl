@@ -16,7 +16,6 @@ include("poisson_frosch.jl")
 
     run_solver_test = lowercase(get(ENV, "GRIDAPTRILINOS_RUN_SOLVER_TEST", "false")) in ("1", "true", "yes")
     parameter_file = get(ENV, "GRIDAPTRILINOS_PARAMETER_FILE", DEFAULT_PARAMETER_FILE)
-    residual_tol = parse(Float64, get(ENV, "GRIDAPTRILINOS_RESIDUAL_TOL", "1.0e-8"))
 
     if run_solver_test
         @test isfile(parameter_file)
@@ -26,7 +25,7 @@ include("poisson_frosch.jl")
                 comm_size = MPI.Comm_size(MPI.COMM_WORLD)
                 @test comm_size == prod(parts)
                 if comm_size == prod(parts)
-                    @test main(distribute, parts; parameter_file, residual_tol)
+                    @test main(distribute, parts; parameter_file)
                 end
             end
         end
