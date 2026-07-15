@@ -12,7 +12,7 @@ module GridapTrilinos
   export TrilinosSolve
   export log
   # properties of the SolverResult struct to be exported to julia
-  export num_iters, residual, solve_time, name, residuals, verbose, depth
+  export num_iters, residual, solve_time, name, verbose, depth
 
   const _sharedlib_path = joinpath(@__DIR__, "GridapTrilinos")
   const _sharedlib_file = _sharedlib_path * "." * Libdl.dlext
@@ -56,10 +56,7 @@ module GridapTrilinos
 
   const WrappedSolverResult = Union{SolverResultAllocated,SolverResultDereferenced}
 
-  # cpp vector to julia vector
-  residuals(result::WrappedSolverResult) = collect(_residualsCxx(result))
-
-  const _solver_result_properties = (:num_iters, :residual, :solve_time, :residuals, :name, :verbose, :depth)
+  const _solver_result_properties = (:num_iters, :residual, :solve_time, :name, :verbose, :depth)
 
   function Base.getproperty(result::WrappedSolverResult, element::Symbol)
     if element === :num_iters
@@ -68,8 +65,6 @@ module GridapTrilinos
       return residual(result)
     elseif element === :solve_time
       return solve_time(result)
-    elseif element === :residuals
-      return residuals(result)
     elseif element === :name
       return name(result)
     elseif element === :verbose

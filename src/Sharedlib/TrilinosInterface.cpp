@@ -165,7 +165,6 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
         .method("num_iters", [](const SolverResult& r) { return r.num_iters;})
         .method("residual", [](const SolverResult& r) { return r.residual;})
         .method("solve_time", [](const SolverResult& r) { return r.solve_time;})
-        .method("_residualsCxx", [](const SolverResult& r) { return r.residuals;})
         .method("name", [](const SolverResult& r) { return r.name;})
         .method("verbose", [](const SolverResult& r) { return r.verbose;})
         .method("depth", [](const SolverResult& r) { return r.depth;});

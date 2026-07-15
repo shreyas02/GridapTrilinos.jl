@@ -8,7 +8,6 @@ struct SolverResult {
   int num_iters = 0;
   double residual = 0.0;
   double solve_time = 0.0;
-  std::vector<double> residuals{};
   int verbose = 0;
   int depth = 0;
 };
