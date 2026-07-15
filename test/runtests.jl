@@ -5,7 +5,10 @@ using Test
 
 @testset "GridapTrilinos package" begin
     @test isdefined(GridapTrilinos, :TrilinosSolve)
-    @test isdefined(GridapTrilinos, :TrilinosParallel)
+    @test isdefined(GridapTrilinos, :ConstructTpetraMatrixWrapper)
+    @test isdefined(GridapTrilinos, :ConstructTpetraVectorWrapper)
+    @test isdefined(GridapTrilinos, :TrilinosSolveWrapper)
+    @test isdefined(GridapTrilinos, :CopySolutionWrapper)
 end
 
 include("poisson_frosch.jl")

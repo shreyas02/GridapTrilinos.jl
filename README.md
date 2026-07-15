@@ -94,6 +94,46 @@ This file is generated and ignored by git. If it is missing, `using
 GridapTrilinos` still works, but any call into the Trilinos solver throws an
 error telling you to build the shared library first.
 
+### Custom Trilinos Solve Source
+
+By default, the shared library builds the solver implementation in:
+
+```text
+src/Sharedlib/TrilinosSolve.cpp
+```
+
+Advanced users can provide a different C++ source file at build time with
+`GRIDAPTRILINOS_SOLVE_SOURCE`:
+
+```bash
+export TRILINOS_ROOT=/path/to/TrilinosInstall
+export GRIDAPTRILINOS_SOLVE_SOURCE=/path/to/MyTrilinosSolve.cpp
+src/Sharedlib/configure.sh
+```
+
+Relative paths are resolved from `src/Sharedlib/`, so this also works:
+
+```bash
+export TRILINOS_ROOT=/path/to/TrilinosInstall
+export GRIDAPTRILINOS_SOLVE_SOURCE=MyTrilinosSolve.cpp
+src/Sharedlib/configure.sh
+```
+
+The custom source must define the same `TrilinosSolve` function declared in
+`src/Sharedlib/TrilinosTypes.hpp`:
+
+```cpp
+TrilinosSolveData TrilinosSolve(
+  const RCP<crs_matrix_type>& A,
+  const RCP<vec_type>& b,
+  const std::string& parameterFilePath,
+  bool verbose);
+```
+
+The Gridap/Tpetra construction and Julia wrapper code still comes from
+`src/Sharedlib/TrilinosInterface.cpp`; only the Trilinos solve implementation is
+replaced.
+
 ## Initialisation
 
 Loading the package performs the CxxWrap and Kokkos setup:
@@ -129,9 +169,9 @@ solver = TrilinosSolve("path/to/trilinos_parameters.xml", 100)
 
 `TrilinosSolve` implements the Gridap linear solver interface, so it is intended
 to be passed wherever a `Gridap.Algebra.LinearSolver` is expected. Internally,
-the solver receives the distributed Gridap matrix/vector partitions, builds the
-corresponding Trilinos/Tpetra objects, applies the preconditioner and Belos
-solver described in the XML file, and copies the local solution back into the
+numerical setup builds and stores the distributed Tpetra matrix. During
+`solve!`, the package builds the Tpetra right-hand side, calls the wrapped
+Trilinos solve implementation, and copies the local solution back into the
 Gridap vector.
 
 After a solve has run, inspect the recorded solver result:
@@ -145,8 +185,8 @@ result.residual
 result.solve_time
 ```
 
-The lower-level C++ entry point `TrilinosParallel(...)` is exported for direct
-use, but typical Gridap usage should go through `TrilinosSolve`.
+The lower-level C++ wrapper functions are implementation details; typical
+Gridap usage should go through `TrilinosSolve`.
 
 ## Development Checks
 

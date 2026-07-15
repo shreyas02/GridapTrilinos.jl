@@ -105,8 +105,26 @@ endif()
 # -------------------------------------------------------------------
 # 4. Target Definition and Linking
 # -------------------------------------------------------------------
+set(GRIDAPTRILINOS_SOLVE_SOURCE "TrilinosSolve.cpp")
+if(DEFINED ENV{GRIDAPTRILINOS_SOLVE_SOURCE} AND NOT "$ENV{GRIDAPTRILINOS_SOLVE_SOURCE}" STREQUAL "")
+  set(GRIDAPTRILINOS_SOLVE_SOURCE "$ENV{GRIDAPTRILINOS_SOLVE_SOURCE}")
+endif()
+
+if(NOT IS_ABSOLUTE "${GRIDAPTRILINOS_SOLVE_SOURCE}")
+  set(GRIDAPTRILINOS_SOLVE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/${GRIDAPTRILINOS_SOLVE_SOURCE}")
+endif()
+
+if(NOT EXISTS "${GRIDAPTRILINOS_SOLVE_SOURCE}")
+  message(FATAL_ERROR "GRIDAPTRILINOS_SOLVE_SOURCE does not exist: ${GRIDAPTRILINOS_SOLVE_SOURCE}")
+endif()
+
+message(STATUS "Using Trilinos solve source: ${GRIDAPTRILINOS_SOLVE_SOURCE}")
+
 # Create the target NOW that languages are enabled
-add_library(GridapTrilinos SHARED CompleteSolve.cpp)
+add_library(GridapTrilinos SHARED
+  TrilinosInterface.cpp
+  ${GRIDAPTRILINOS_SOLVE_SOURCE}
+)
 
 # Linking all directories
 target_include_directories(GridapTrilinos PRIVATE

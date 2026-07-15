@@ -7,7 +7,7 @@ module GridapTrilinos
   import PartitionedArrays: local_to_global, own_to_local
 
   # cpp structs and functions to be exported to julia
-  export TrilinosParallel, KokkosInitialize, KokkosFinalize
+  export KokkosInitialize, KokkosFinalize
   export SolverResult, SolverResultAllocated, SolverResultDereferenced
   export TrilinosSolve
   export log
@@ -40,7 +40,10 @@ module GridapTrilinos
       )
     end
 
-    TrilinosParallel(args...) = _missing_sharedlib()
+    ConstructTpetraMatrixWrapper(args...) = _missing_sharedlib()
+    ConstructTpetraVectorWrapper(args...) = _missing_sharedlib()
+    TrilinosSolveWrapper(args...) = _missing_sharedlib()
+    CopySolutionWrapper(args...) = _missing_sharedlib()
     KokkosInitialize() = nothing
     KokkosFinalize() = nothing
     num_iters(result::Union{SolverResultAllocated,SolverResultDereferenced}) = _missing_sharedlib()
