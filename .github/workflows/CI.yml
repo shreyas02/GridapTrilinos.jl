@@ -91,9 +91,9 @@ jobs:
           LD_LIBRARY_PATH: ${{ env.TRILINOS_ROOT }}/lib:${{ env.TRILINOS_ROOT }}/lib64
         run: julia --project=. --color=yes test/runtests.jl
 
-      - name: Run Poisson FROSch MPI test
+      - name: Run Poisson MPI tests
         env:
-          GRIDAPTRILINOS_RUN_SOLVER_TEST: "true"
+          GRIDAPTRILINOS_RUN_MPI_TESTS: "true"
           OMPI_MCA_rmaps_base_oversubscribe: "1"
           TRILINOS_ROOT: ${{ env.TRILINOS_ROOT }}
           LD_LIBRARY_PATH: ${{ env.TRILINOS_ROOT }}/lib:${{ env.TRILINOS_ROOT }}/lib64
