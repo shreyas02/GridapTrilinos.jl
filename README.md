@@ -1,11 +1,9 @@
-# GridapTrilinos
+# GridapTrilinos.jl
 
 GridapTrilinos is a Julia interface for using Trilinos linear solvers from
 Gridap/GridapDistributed workflows. The Julia side provides a `TrilinosSolve`
 linear solver; the Trilinos, Tpetra, Belos, Thyra, FROSch, and Kokkos calls live
 in a small C++ shared library exposed with CxxWrap.
-
-It is authored by Shreyas Prashanth.
 
 ## Workflow
 
