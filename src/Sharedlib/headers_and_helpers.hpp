@@ -2,12 +2,15 @@
 #define _HEADERS_AND_HELPERS_
 
 // std
+#include <algorithm>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
 #include <exception>
 #include <filesystem>
+#include <vector>
 
 // MPI
 #include <mpi.h>

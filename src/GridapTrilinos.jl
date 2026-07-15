@@ -4,7 +4,7 @@ module GridapTrilinos
   using CxxWrap
   using Libdl
   using MPIPreferences
-  import PartitionedArrays: own_to_local
+  import PartitionedArrays: local_to_global, own_to_local
 
   # cpp structs and functions to be exported to julia
   export TrilinosParallel, KokkosInitialize, KokkosFinalize

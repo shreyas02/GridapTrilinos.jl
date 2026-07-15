@@ -12,10 +12,10 @@ struct SolverResult {
 
 template<> struct jlcxx::IsMirroredType<SolverResult> : std::false_type { };
 
-SolverResult TrilinosParallel(jlcxx::ArrayRef<double> A_nzval, jlcxx::ArrayRef<int64_t> A_rowval, 
-  jlcxx::ArrayRef<int64_t> A_colptr, jlcxx::ArrayRef<double> RhsVec, jlcxx::ArrayRef<double> LocSoln, jlcxx::ArrayRef<int64_t> RowPartition,
+SolverResult TrilinosParallel(jlcxx::ArrayRef<double> A_nzval, jlcxx::ArrayRef<int64_t> A_colind, 
+  jlcxx::ArrayRef<int64_t> A_rowptr, jlcxx::ArrayRef<double> RhsVec, jlcxx::ArrayRef<double> LocSoln, jlcxx::ArrayRef<int64_t> RowPartition,
   jlcxx::ArrayRef<int64_t> ColPartition, int64_t LinSysSize, int64_t LocRowSize, int64_t LocColSize,
-  jlcxx::ArrayRef<int64_t> OwnToValSol, jlcxx::ArrayRef<int64_t> OwnToValRow, int64_t maxNumEntriesPerRowInput,
+  jlcxx::ArrayRef<int32_t> OwnToValSol, jlcxx::ArrayRef<int32_t> OwnToValRow, int64_t maxNumEntriesPerRowInput,
   std::string parameterFilePath) {
 
   int argc = 0; char** argv = nullptr;
@@ -39,13 +39,23 @@ SolverResult TrilinosParallel(jlcxx::ArrayRef<double> A_nzval, jlcxx::ArrayRef<i
     Teuchos::Time timer("solve_time");
 
     //// Begin custom Tpetra map
+    std::vector<global_ordinal_type> ownedRowIndices(static_cast<size_t>(LocRowSize));
+    for(int64_t i = 0; i < LocRowSize; ++i){
+      ownedRowIndices[static_cast<size_t>(i)] =
+        static_cast<global_ordinal_type>(RowPartition[OwnToValRow[i] - 1] - 1);
+    }
+
+    std::vector<global_ordinal_type> colPartition(static_cast<size_t>(ColPartition.size()));
+    std::transform(ColPartition.begin(), ColPartition.end(), colPartition.begin(),
+      [](int64_t value) { return static_cast<global_ordinal_type>(value - 1); });
+
     Teuchos::ArrayView<const global_ordinal_type> rowIndices(
-      reinterpret_cast<const global_ordinal_type*>(RowPartition.data()),
-      RowPartition.size());
+      ownedRowIndices.data(),
+      ownedRowIndices.size());
       
     Teuchos::ArrayView<const global_ordinal_type> colIndices(
-      reinterpret_cast<const global_ordinal_type*>(ColPartition.data()),
-      ColPartition.size());    
+      colPartition.data(),
+      colPartition.size());    
 
     // Setting the IndexBase
     const global_ordinal_type indexBase = 0;
@@ -60,20 +70,22 @@ SolverResult TrilinosParallel(jlcxx::ArrayRef<double> A_nzval, jlcxx::ArrayRef<i
     //// End custom Tpetra map
 
     //// Begin Tpetra Matrix Assembly
-    const size_t maxNumEntriesPerRow = static_cast<size_t>(maxNumEntriesPerRowInput > 0 ? maxNumEntriesPerRowInput : 1);
-    RCP<crs_matrix_type> A = rcp(new crs_matrix_type (rowMap,colMap, maxNumEntriesPerRow)); // Initialization
-    // CSC Matrix Insertion using LocalInsert
-    for(int64_t col = 0; col < LocColSize; ++col){
-      int64_t start = A_colptr[col];
-      int64_t end = A_colptr[col + 1];
-      for(int64_t j = start; j<end;j++){
-        double value = A_nzval[j];
-        local_ordinal_type row = static_cast<local_ordinal_type>(A_rowval[j]);
-        local_ordinal_type Col = static_cast<local_ordinal_type>(col);
-        if(value == 0.0){continue;}
-        A->insertLocalValues(row,Teuchos::ArrayView<const local_ordinal_type>(&Col,1),Teuchos::ArrayView<const double>(&value,1));
-      }
-    }
+    const size_t rowptrSize = static_cast<size_t>(LocRowSize + 1);
+    const size_t nnzOwnedRows = static_cast<size_t>(A_rowptr[LocRowSize]);
+
+    std::vector<size_t> rowptr(rowptrSize);
+    std::transform(A_rowptr.begin(), A_rowptr.begin() + rowptrSize, rowptr.begin(),
+      [](int64_t value) { return static_cast<size_t>(value); });
+
+    std::vector<local_ordinal_type> colind(nnzOwnedRows);
+    std::transform(A_colind.begin(), A_colind.begin() + nnzOwnedRows, colind.begin(),
+      [](int64_t value) { return static_cast<local_ordinal_type>(value); });
+
+    Teuchos::ArrayRCP<size_t> rowptrView(rowptr.data(), 0, rowptr.size(), false);
+    Teuchos::ArrayRCP<local_ordinal_type> colindView(colind.data(), 0, colind.size(), false);
+    Teuchos::ArrayRCP<double> valuesView(A_nzval.data(), 0, nnzOwnedRows, false);
+
+    RCP<crs_matrix_type> A = rcp(new crs_matrix_type(rowMap, colMap, rowptrView, colindView, valuesView));
     A->fillComplete();
     size_t locSize = A->getLocalNumRows();
 
@@ -87,7 +99,7 @@ SolverResult TrilinosParallel(jlcxx::ArrayRef<double> A_nzval, jlcxx::ArrayRef<i
     RCP<Tpetra::Vector<>> b = rcp(new Tpetra::Vector<>(rowMap));
     for(int64_t i = 0; i < LocRowSize; ++i){
       local_ordinal_type row = static_cast<local_ordinal_type>(i);
-      double value = RhsVec[OwnToValRow[i]];
+      double value = RhsVec[OwnToValRow[i] - 1];
       b->sumIntoLocalValue(row, value);
     }
     //// End Right Hand side vector
@@ -151,7 +163,7 @@ SolverResult TrilinosParallel(jlcxx::ArrayRef<double> A_nzval, jlcxx::ArrayRef<i
     //// Begin copying the solution
     auto x_data_host = x->getLocalViewHost(Tpetra::Access::ReadOnly);
     for(size_t i = 0; i< LocRowSize; ++i){
-      LocSoln[OwnToValSol[i]] = x_data_host(i, 0);
+      LocSoln[OwnToValSol[i] - 1] = x_data_host(i, 0);
     }
     //// End copying the solution
   }

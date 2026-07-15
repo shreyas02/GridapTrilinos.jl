@@ -67,20 +67,21 @@ function Gridap.Algebra.solve!(
         x.vector_partition,
         x.index_partition,
     ) do LocMat, RowMap, ColMap, LocRhs, LocSoln, xmap
-        OwnRowMap = RowMap[own_to_local(RowMap)]
+        OwnToLocalRow = own_to_local(RowMap)
+        OwnToLocalSol = own_to_local(xmap)
         getfield(ns.solver, :log)[] = TrilinosParallel(
             LocMat.nzval,
-            LocMat.rowval .- 1,
-            LocMat.colptr .- 1,
+            LocMat.colval,
+            LocMat.rowptr,
             LocRhs,
             LocSoln,
-            OwnRowMap .- 1,
-            ColMap .- 1,
+            collect(local_to_global(RowMap)),
+            collect(local_to_global(ColMap)),
             size(ns.A)[1],
-            size(OwnRowMap)[1],
+            length(OwnToLocalRow),
             size(LocMat)[2],
-            own_to_local(xmap) .- 1,
-            own_to_local(RowMap) .- 1,
+            OwnToLocalSol,
+            OwnToLocalRow,
             ns.solver.max_entries_per_row,
             ns.solver.parameter_file,
         )

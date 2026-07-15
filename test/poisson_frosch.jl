@@ -3,6 +3,7 @@ using GridapDistributed
 using GridapTrilinos
 using MPI
 using PartitionedArrays
+using SparseMatricesCSR
 
 const DEFAULT_PARAMETER_FILE = joinpath(@__DIR__, "poisson_frosch.xml")
 
@@ -38,28 +39,37 @@ function main(distribute, parts; parameter_file=DEFAULT_PARAMETER_FILE)
     a(u, v) = ∫(∇(v) ⋅ ∇(u))dΩ
     l(v) = ∫(v * f)dΩ
 
-    op = AffineFEOperator(a, l, Ug, V0)
+    assem = SparseMatrixAssembler(SparseMatrixCSR{0,Float64,Int}, Vector{Float64}, Ug, V0)
+    op = AffineFEOperator(a, l, Ug, V0, assem)
 
     timer2 = MPI.Wtime()
     solver = TrilinosSolve(parameter_file)
     uh = solve(solver, op)
     timer3 = MPI.Wtime()
+    uh_lu = solve(LUSolver(), op)
+    timer4 = MPI.Wtime()
+
+    solution_difference_residual = sqrt(sum(∫(abs2(uh - uh_lu))dΩ))
 
     comm = MPI.COMM_WORLD
     rank = MPI.Comm_rank(comm)
     solving_time = MPI.Reduce(timer3 - timer2, MPI.MAX, 0, comm)
+    lu_solving_time = MPI.Reduce(timer4 - timer3, MPI.MAX, 0, comm)
     gridap_setup_time = MPI.Reduce(timer2 - timer1, MPI.MAX, 0, comm)
-    total_time = MPI.Reduce(timer3 - timer1, MPI.MAX, 0, comm)
+    total_time = MPI.Reduce(timer4 - timer1, MPI.MAX, 0, comm)
     residual_value = solver.log.residual
     max_residual = MPI.Reduce(residual_value, MPI.MAX, 0, comm)
+    max_solution_difference_residual = MPI.Reduce(solution_difference_residual, MPI.MAX, 0, comm)
 
     if rank == 0
         println("Trilinos solver time: ", solving_time)
+        println("LU solver time: ", lu_solving_time)
         println("Gridap setup time: ", gridap_setup_time)
         println("Total program time: ", total_time)
         println("Solver: ", solver.log.name)
         println("Iterations: ", solver.log.num_iters)
         println("Residual: ", max_residual)
+        println("Solution difference residual: ", max_solution_difference_residual)
     end
 
     return true
