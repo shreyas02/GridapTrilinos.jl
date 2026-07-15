@@ -161,12 +161,6 @@ using GridapTrilinos
 solver = TrilinosSolve("path/to/trilinos_parameters.xml")
 ```
 
-Optionally set the estimated maximum number of nonzeros per local matrix row:
-
-```julia
-solver = TrilinosSolve("path/to/trilinos_parameters.xml", 100)
-```
-
 `TrilinosSolve` implements the Gridap linear solver interface, so it is intended
 to be passed wherever a `Gridap.Algebra.LinearSolver` is expected. Internally,
 numerical setup builds and stores the distributed Tpetra matrix. During

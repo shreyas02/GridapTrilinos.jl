@@ -35,6 +35,7 @@
 #include <Teuchos_StackedTimer.hpp>
 #include <Teuchos_Tuple.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
+#include <Teuchos_AbstractFactoryStd.hpp>
 
 // Thyra 
 #include <Thyra_LinearOpWithSolveBase.hpp>
@@ -51,6 +52,7 @@
 #include <Thyra_VectorStdOps.hpp>
 #include <Thyra_VectorSpaceBase_def.hpp>
 #include <Thyra_VectorSpaceBase_decl.hpp>
+#include <Thyra_Ifpack2PreconditionerFactory_def.hpp>
 
 // Stratimikos
 #include <Stratimikos_DefaultLinearSolverBuilder.hpp>
@@ -97,5 +99,17 @@ typedef typename scalar_traits::magnitudeType magnitude_type;
 // Define Tpetra operator and multivector types explicitly using scalar_type
 typedef Tpetra::Operator<scalar_type> tpetra_operator;
 typedef Tpetra::MultiVector<scalar_type> multivec;
+
+inline void enableIfpack2Preconditioner(Stratimikos::DefaultLinearSolverBuilder& builder)
+{
+  const RCP<const ParameterList> precValidParams =
+    sublist(builder.getValidParameters(), "Preconditioner Types");
+
+  if (!precValidParams->isParameter("Ifpack2")) {
+    using Base = Thyra::PreconditionerFactoryBase<scalar_type>;
+    using Impl = Thyra::Ifpack2PreconditionerFactory<crs_matrix_type>;
+    builder.setPreconditioningStrategyFactory(abstractFactoryStd<Base, Impl>(), "Ifpack2");
+  }
+}
 
 #endif

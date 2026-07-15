@@ -2,14 +2,12 @@
 ## Begin Trilinos Solve 
 struct TrilinosSolve <: Gridap.Algebra.LinearSolver
     parameter_file::String
-    max_entries_per_row::Int
     log::Base.RefValue{Union{Nothing,SolverResultAllocated}}
 end
 
-function TrilinosSolve(parameter_file::AbstractString, max_entries_per_row::Integer=100)
+function TrilinosSolve(parameter_file::AbstractString)
     return TrilinosSolve(
         String(parameter_file),
-        Int(max_entries_per_row),
         Ref{Union{Nothing,SolverResultAllocated}}(nothing),
     )
 end
