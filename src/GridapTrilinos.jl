@@ -42,6 +42,7 @@ module GridapTrilinos
 
     ConstructTpetraMatrixWrapper(args...) = _missing_sharedlib()
     ConstructTpetraVectorWrapper(args...) = _missing_sharedlib()
+    TrilinosSolverSetupWrapper(args...) = _missing_sharedlib()
     TrilinosSolveWrapper(args...) = _missing_sharedlib()
     CopySolutionWrapper(args...) = _missing_sharedlib()
     KokkosInitialize() = nothing

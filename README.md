@@ -2,8 +2,8 @@
 
 GridapTrilinos is a Julia interface for using Trilinos linear solvers from
 Gridap/GridapDistributed workflows. The Julia side provides a `TrilinosSolve`
-linear solver, while the Trilinos, Tpetra, Belos, Thyra, FROSch, and Kokkos calls live
-in a small C++ shared library exposed to Julia with CxxWrap.
+linear solver; the Trilinos, Tpetra, Belos, Thyra, FROSch, and Kokkos calls live
+in a small C++ shared library exposed with CxxWrap.
 
 It is authored by Shreyas Prashanth.
 
@@ -26,8 +26,7 @@ Pkg.activate(".")
 Pkg.instantiate()
 ```
 
-This installs the Julia dependencies, including `Gridap`, `GridapDistributed`,
-`PartitionedArrays`, `CxxWrap`, `MPIPreferences`, and `libcxxwrap_julia_jll`.
+This installs the Julia dependencies listed in `Project.toml`.
 
 ## MPI Compatibility
 
@@ -64,9 +63,8 @@ before compiling the C++ wrapper.
 
 ## Building The C++ Library
 
-The C++ wrapper must be built before calling the Trilinos solver. The generated
-file is a shared library, not a portable source file, so each user builds it
-locally against their own Julia, MPI, and Trilinos installation.
+The C++ wrapper must be built before calling the Trilinos solver. Each user
+builds it locally against their Julia, MPI, and Trilinos installation.
 
 Set `TRILINOS_ROOT` to the Trilinos installation prefix, then build through
 Julia's package build step:
@@ -119,8 +117,22 @@ export GRIDAPTRILINOS_SOLVE_SOURCE=MyTrilinosSolve.cpp
 src/Sharedlib/configure.sh
 ```
 
-The custom source must define the same `TrilinosSolve` function declared in
-`src/Sharedlib/TrilinosTypes.hpp`:
+The custom source must define the `TrilinosSolve` overloads declared in
+`src/Sharedlib/TrilinosTypes.hpp`. The setup overload returns a reusable cache:
+
+```cpp
+TrilinosSolverCache TrilinosSolve(
+  const RCP<crs_matrix_type>& A,
+  const std::string& parameterFilePath,
+  bool verbose);
+
+TrilinosSolveData TrilinosSolve(
+  const TrilinosSolverCache& solverCache,
+  const RCP<vec_type>& b,
+  bool verbose);
+```
+
+The one-shot overload can delegate through the cached path:
 
 ```cpp
 TrilinosSolveData TrilinosSolve(
@@ -133,6 +145,12 @@ TrilinosSolveData TrilinosSolve(
 The Gridap/Tpetra construction and Julia wrapper code still comes from
 `src/Sharedlib/TrilinosInterface.cpp`; only the Trilinos solve implementation is
 replaced.
+
+`GRIDAPTRILINOS_SOLVE_SOURCE` only swaps the C++ source file. If your custom
+solver needs additional CMake logic, include directories, libraries, compile
+definitions, or extra source files, edit `src/Sharedlib/CMakeLists.txt` or keep
+a project-specific copy of that CMake file. A second CMakeLists file is not
+loaded automatically.
 
 ## Initialisation
 
@@ -163,10 +181,9 @@ solver = TrilinosSolve("path/to/trilinos_parameters.xml")
 
 `TrilinosSolve` implements the Gridap linear solver interface, so it is intended
 to be passed wherever a `Gridap.Algebra.LinearSolver` is expected. Internally,
-numerical setup builds and stores the distributed Tpetra matrix. During
-`solve!`, the package builds the Tpetra right-hand side, calls the wrapped
-Trilinos solve implementation, and copies the local solution back into the
-Gridap vector.
+numerical setup builds the distributed Tpetra matrix and caches the Thyra
+`LinearOpWithSolve`. Repeated `solve!` calls with the same numerical setup reuse
+that solver state and only rebuild the Tpetra right-hand side and solution.
 
 After a solve has run, inspect the recorded solver result:
 
@@ -202,6 +219,7 @@ Or run one tutorial directly:
 ```bash
 mpiexecjl --project=. -n 4 julia test/poisson_thyra.jl
 mpiexecjl --project=. -n 4 julia test/poisson_frosch.jl
+mpiexecjl --project=. -n 4 julia test/transient_cached.jl
 ```
 
 Rebuild the C++ library after changing files in `src/Sharedlib/`:

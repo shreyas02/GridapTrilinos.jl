@@ -27,10 +27,11 @@ struct TrilinosSolveSymbolicSetup <: Gridap.Algebra.SymbolicSetup
     solver::TrilinosSolve
 end
 
-mutable struct TrilinosSolveNumericalSetup{M,R} <: Gridap.Algebra.NumericalSetup
+mutable struct TrilinosSolveNumericalSetup{M,R,C} <: Gridap.Algebra.NumericalSetup
     solver::TrilinosSolve
     matrix_partition::M
     row_partition::R
+    solver_cache::C
 end
 
 function Gridap.Algebra.symbolic_setup(solver::TrilinosSolve, mat::AbstractMatrix)
@@ -39,7 +40,8 @@ end
 
 function Gridap.Algebra.numerical_setup(ss::TrilinosSolveSymbolicSetup, A::AbstractMatrix)
     matrix_partition = _construct_tpetra_matrix_partition(A)
-    return TrilinosSolveNumericalSetup(ss.solver, matrix_partition, A.row_partition)
+    solver_cache = _construct_trilinos_solver_cache(matrix_partition, ss.solver.parameter_file)
+    return TrilinosSolveNumericalSetup(ss.solver, matrix_partition, A.row_partition, solver_cache)
 end
 
 function Gridap.Algebra.numerical_setup(
@@ -48,14 +50,22 @@ function Gridap.Algebra.numerical_setup(
     x::AbstractVector,
 )
     matrix_partition = _construct_tpetra_matrix_partition(A)
-    return TrilinosSolveNumericalSetup(ss.solver, matrix_partition, A.row_partition)
+    solver_cache = _construct_trilinos_solver_cache(matrix_partition, ss.solver.parameter_file)
+    return TrilinosSolveNumericalSetup(ss.solver, matrix_partition, A.row_partition, solver_cache)
 end
 
 function Gridap.Algebra.numerical_setup!(ns::TrilinosSolveNumericalSetup, A::AbstractMatrix)
     matrix_partition = _construct_tpetra_matrix_partition(A)
     ns.matrix_partition = matrix_partition
     ns.row_partition = A.row_partition
+    ns.solver_cache = _construct_trilinos_solver_cache(matrix_partition, ns.solver.parameter_file)
     return ns
+end
+
+function _construct_trilinos_solver_cache(matrix_partition, parameter_file::AbstractString)
+    map(matrix_partition) do TpetraMatrix
+        TrilinosSolverSetupWrapper(TpetraMatrix, parameter_file)
+    end
 end
 
 function _construct_tpetra_matrix_partition(A::AbstractMatrix)
@@ -81,11 +91,12 @@ function Gridap.Algebra.solve!(
 )
     map(
         ns.matrix_partition,
+        ns.solver_cache,
         ns.row_partition,
         b.vector_partition,
         x.vector_partition,
         x.index_partition,
-    ) do TpetraMatrix, RowMap, LocRhs, LocSoln, xmap
+    ) do TpetraMatrix, SolverCache, RowMap, LocRhs, LocSoln, xmap
         ## # Construct Tpetra RHS vector
         OwnToLocalRow = own_to_local(RowMap)
         OwnToLocalSol = own_to_local(xmap)
@@ -97,9 +108,8 @@ function Gridap.Algebra.solve!(
         )
         ## Solve the linear system using Trilinos
         solve_data = TrilinosSolveWrapper(
-            TpetraMatrix,
+            SolverCache,
             TpetraRhs,
-            ns.solver.parameter_file,
         )
         ## Copy the solution back to the Gridap vector
         getfield(ns.solver, :log)[] = CopySolutionWrapper(

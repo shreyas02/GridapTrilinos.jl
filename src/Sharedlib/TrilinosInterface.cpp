@@ -8,6 +8,8 @@ template<> struct jlcxx::IsMirroredType<TpetraVectorData> : std::false_type { };
 
 template<> struct jlcxx::IsMirroredType<TrilinosSolveData> : std::false_type { };
 
+template<> struct jlcxx::IsMirroredType<TrilinosSolverCache> : std::false_type { };
+
 // Function to construct Tpetra matrix.
 
 TpetraMatrixData ConstructTpetraMatrix(
@@ -131,6 +133,36 @@ SolverResult CopySolutionWrapper(
 
 // Julia-facing solve entry point.
 
+TrilinosSolverCache TrilinosSolverSetupWrapper(
+  const TpetraMatrixData& matrixData,
+  std::string parameterFilePath) {
+
+  MPI_Comm yourComm = MPI_COMM_WORLD;
+  RCP<const Comm<int> > comm (new MpiComm<int> (yourComm));
+  const int myRank = comm->getRank ();
+  const bool verbose = (myRank == 0); // Only print on rank 0
+
+  return TrilinosSolve(
+    matrixData.matrix,
+    parameterFilePath,
+    verbose);
+}
+
+TrilinosSolveData TrilinosSolveWrapper(
+  const TrilinosSolverCache& solverCache,
+  const TpetraVectorData& vectorData) {
+
+  MPI_Comm yourComm = MPI_COMM_WORLD;
+  RCP<const Comm<int> > comm (new MpiComm<int> (yourComm));
+  const int myRank = comm->getRank ();
+  const bool verbose = (myRank == 0); // Only print on rank 0
+
+  return TrilinosSolve(
+    solverCache,
+    vectorData.vector,
+    verbose);
+}
+
 TrilinosSolveData TrilinosSolveWrapper(
   const TpetraMatrixData& matrixData,
   const TpetraVectorData& vectorData,
@@ -171,6 +203,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
     mod.add_type<TpetraMatrixData>("TpetraMatrixData");
     mod.add_type<TpetraVectorData>("TpetraVectorData");
     mod.add_type<TrilinosSolveData>("TrilinosSolveData");
+    mod.add_type<TrilinosSolverCache>("TrilinosSolverCache");
     mod.method("ConstructTpetraMatrixWrapper", static_cast<TpetraMatrixData (*)(
         jlcxx::ArrayRef<double>,
         jlcxx::ArrayRef<int64_t>,
@@ -181,6 +214,12 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
         int64_t,
         jlcxx::ArrayRef<int32_t>)>(&ConstructTpetraMatrixWrapper));
     mod.method("ConstructTpetraVectorWrapper", &ConstructTpetraVectorWrapper);
+    mod.method("TrilinosSolverSetupWrapper", static_cast<TrilinosSolverCache (*)(
+        const TpetraMatrixData&,
+        std::string)>(&TrilinosSolverSetupWrapper));
+    mod.method("TrilinosSolveWrapper", static_cast<TrilinosSolveData (*)(
+        const TrilinosSolverCache&,
+        const TpetraVectorData&)>(&TrilinosSolveWrapper));
     mod.method("TrilinosSolveWrapper", static_cast<TrilinosSolveData (*)(
         const TpetraMatrixData&,
         const TpetraVectorData&,

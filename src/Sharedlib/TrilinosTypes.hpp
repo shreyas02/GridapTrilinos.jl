@@ -27,6 +27,22 @@ struct TrilinosSolveData {
   SolverResult result;
 };
 
+struct TrilinosSolverCache {
+  RCP<Thyra::LinearOpWithSolveBase<scalar_type>> solver;
+  std::string linearSolverName;
+  std::string preconditionerName;
+};
+
+TrilinosSolverCache TrilinosSolve(
+  const RCP<crs_matrix_type>& A,
+  const std::string& parameterFilePath,
+  bool verbose);
+
+TrilinosSolveData TrilinosSolve(
+  const TrilinosSolverCache& solverCache,
+  const RCP<vec_type>& b,
+  bool verbose);
+
 TrilinosSolveData TrilinosSolve(
   const RCP<crs_matrix_type>& A,
   const RCP<vec_type>& b,
