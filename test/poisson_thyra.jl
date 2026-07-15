@@ -5,13 +5,13 @@ using MPI
 using PartitionedArrays
 using SparseMatricesCSR
 
-const FROSCH_PARAMETER_FILE = joinpath(@__DIR__, "poisson_frosch.xml")
+const DEFAULT_PARAMETER_FILE = joinpath(@__DIR__, "poisson_thyra.xml")
 
-function poisson_frosch(distribute, parts)
-    if !isfile(FROSCH_PARAMETER_FILE)
+function main(distribute, parts)
+    if !isfile(DEFAULT_PARAMETER_FILE)
         error(
-            "Trilinos parameter XML file not found at $(FROSCH_PARAMETER_FILE). " *
-            "Add it to test/poisson_frosch.xml.",
+            "Trilinos parameter XML file not found at $(DEFAULT_PARAMETER_FILE). " *
+            "Add it to test/poisson_thyra.xml.",
         )
     end
 
@@ -43,7 +43,7 @@ function poisson_frosch(distribute, parts)
     op = AffineFEOperator(a, l, Ug, V0, assem)
 
     timer2 = MPI.Wtime()
-    solver = TrilinosSolve(FROSCH_PARAMETER_FILE)
+    solver = TrilinosSolve(DEFAULT_PARAMETER_FILE)
     uh = solve(solver, op)
     timer3 = MPI.Wtime()
     uh_lu = solve(LUSolver(), op)
@@ -78,9 +78,9 @@ end
 if abspath(PROGRAM_FILE) == @__FILE__
     with_mpi() do distribute
         rank_partition = (1, MPI.Comm_size(MPI.COMM_WORLD))
-        poisson_frosch(distribute, rank_partition)
+        main(distribute, rank_partition)
     end
 end
 
 # Run with MPI ranks:
-# mpiexecjl --project=. -n 4 julia test/poisson_frosch.jl
+# mpiexecjl --project=. -n 4 julia test/poisson_thyra.jl

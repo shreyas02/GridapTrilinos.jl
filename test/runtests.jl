@@ -11,28 +11,40 @@ using Test
     @test isdefined(GridapTrilinos, :CopySolutionWrapper)
 end
 
+include("poisson_thyra.jl")
 include("poisson_frosch.jl")
 
-@testset "Poisson FROSch workflow" begin
+env_true(name) = lowercase(get(ENV, name, "false")) in ("1", "true", "yes")
+
+@testset "Poisson workflow setup" begin
     @test isdefined(Main, :main)
-    @test DEFAULT_PARAMETER_FILE == joinpath(@__DIR__, "poisson_frosch.xml")
+    @test DEFAULT_PARAMETER_FILE == joinpath(@__DIR__, "poisson_thyra.xml")
+    @test isfile(DEFAULT_PARAMETER_FILE)
+    @test isdefined(Main, :poisson_frosch)
+    @test FROSCH_PARAMETER_FILE == joinpath(@__DIR__, "poisson_frosch.xml")
+    @test isfile(FROSCH_PARAMETER_FILE)
+end
 
-    run_solver_test = lowercase(get(ENV, "GRIDAPTRILINOS_RUN_SOLVER_TEST", "false")) in ("1", "true", "yes")
-    parameter_file = get(ENV, "GRIDAPTRILINOS_PARAMETER_FILE", DEFAULT_PARAMETER_FILE)
+@testset "Poisson MPI workflows" begin
+    workflows = (
+        (name="Thyra", solve=main),
+        (name="FROSch", solve=poisson_frosch),
+    )
 
-    if run_solver_test
-        @test isfile(parameter_file)
-        if isfile(parameter_file)
-            with_mpi() do distribute
-                parts = (2, 2)
-                comm_size = MPI.Comm_size(MPI.COMM_WORLD)
-                @test comm_size == prod(parts)
-                if comm_size == prod(parts)
-                    @test main(distribute, parts; parameter_file)
+    if !env_true("GRIDAPTRILINOS_RUN_MPI_TESTS")
+        @test_skip "Set GRIDAPTRILINOS_RUN_MPI_TESTS=true to run all Poisson MPI workflows."
+    else
+        with_mpi() do distribute
+            comm_size = MPI.Comm_size(MPI.COMM_WORLD)
+            rank_partition = (1, comm_size)
+
+            for workflow in workflows
+                @testset "$(workflow.name)" begin
+                    result = workflow.solve(distribute, rank_partition)
+                    GC.gc(true)
+                    @test result
                 end
             end
         end
-    else
-        @test_skip "Set GRIDAPTRILINOS_RUN_SOLVER_TEST=true and provide test/poisson_frosch.xml to run the MPI/Trilinos solve."
     end
 end

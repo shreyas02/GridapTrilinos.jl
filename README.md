@@ -2,7 +2,7 @@
 
 GridapTrilinos is a Julia interface for using Trilinos linear solvers from
 Gridap/GridapDistributed workflows. The Julia side provides a `TrilinosSolve`
-linear solver, while the Trilinos, Tpetra, Belos, FROSch, and Kokkos calls live
+linear solver, while the Trilinos, Tpetra, Belos, Thyra, FROSch, and Kokkos calls live
 in a small C++ shared library exposed to Julia with CxxWrap.
 
 It is authored by Shreyas Prashanth.
@@ -196,21 +196,18 @@ Run the package tests from the repository root:
 julia --project=. test/runtests.jl
 ```
 
-The default test run checks that the distributed Poisson workflow is loadable,
-but skips the full MPI/Trilinos solve. To run the solver workflow test, add the
-XML file at `test/poisson_frosch.xml` and launch with 4 MPI ranks:
+The default run skips the MPI solves. To run both Poisson MPI tutorials:
 
 ```bash
-GRIDAPTRILINOS_RUN_SOLVER_TEST=true \
+GRIDAPTRILINOS_RUN_MPI_TESTS=true \
   mpiexecjl --project=. -n 4 julia test/runtests.jl
 ```
 
-To use a different XML file:
+Or run one tutorial directly:
 
 ```bash
-GRIDAPTRILINOS_RUN_SOLVER_TEST=true \
-GRIDAPTRILINOS_PARAMETER_FILE=test/my_parameters.xml \
-  mpiexecjl --project=. -n 4 julia test/runtests.jl
+mpiexecjl --project=. -n 4 julia test/poisson_thyra.jl
+mpiexecjl --project=. -n 4 julia test/poisson_frosch.jl
 ```
 
 Rebuild the C++ library after changing files in `src/Sharedlib/`:
