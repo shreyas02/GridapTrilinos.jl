@@ -13,26 +13,31 @@ end
 
 include("poisson_thyra.jl")
 include("poisson_frosch.jl")
+include("transient_cached.jl")
 
 env_true(name) = lowercase(get(ENV, name, "false")) in ("1", "true", "yes")
 
-@testset "Poisson workflow setup" begin
+@testset "Workflow setup" begin
     @test isdefined(Main, :main)
     @test DEFAULT_PARAMETER_FILE == joinpath(@__DIR__, "poisson_thyra.xml")
     @test isfile(DEFAULT_PARAMETER_FILE)
     @test isdefined(Main, :poisson_frosch)
     @test FROSCH_PARAMETER_FILE == joinpath(@__DIR__, "poisson_frosch.xml")
     @test isfile(FROSCH_PARAMETER_FILE)
+    @test isdefined(Main, :transient_cached)
+    @test TRANSIENT_PARAMETER_FILE == joinpath(@__DIR__, "poisson_frosch.xml")
+    @test isfile(TRANSIENT_PARAMETER_FILE)
 end
 
-@testset "Poisson MPI workflows" begin
+@testset "MPI workflows" begin
     workflows = (
         (name="Thyra", solve=main),
         (name="FROSch", solve=poisson_frosch),
+        (name="Transient cached FROSch", solve=transient_cached),
     )
 
     if !env_true("GRIDAPTRILINOS_RUN_MPI_TESTS")
-        @test_skip "Set GRIDAPTRILINOS_RUN_MPI_TESTS=true to run all Poisson MPI workflows."
+        @test_skip "Set GRIDAPTRILINOS_RUN_MPI_TESTS=true to run all MPI workflows."
     else
         with_mpi() do distribute
             comm_size = MPI.Comm_size(MPI.COMM_WORLD)
