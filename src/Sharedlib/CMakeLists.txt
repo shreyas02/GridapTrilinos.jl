@@ -23,7 +23,7 @@ if(DEFINED ENV{Trilinos_DIR} AND NOT "$ENV{Trilinos_DIR}" STREQUAL "")
   set(Trilinos_DIR "$ENV{Trilinos_DIR}")
 endif()
 
-find_package(Trilinos REQUIRED COMPONENTS Amesos2 Teuchos Tpetra Belos Thyra Stratimikos Ifpack2 ShyLU_DDFROSch Xpetra MueLu)
+find_package(Trilinos REQUIRED COMPONENTS Amesos2 Teuchos Tpetra Belos Thyra Stratimikos ShyLU_DDFROSch Xpetra MueLu)
 
 # Make sure to use same compilers and flags as Trilinos
 set(CMAKE_CXX_COMPILER ${Trilinos_CXX_COMPILER})

@@ -51,20 +51,20 @@ TpetraMatrixData ConstructTpetraMatrix(
   const size_t rowptrSize = static_cast<size_t>(LocRowSize + 1);
   const size_t nnzOwnedRows = static_cast<size_t>(A_rowptr[LocRowSize]);
 
-  std::vector<size_t> rowptr(rowptrSize);
-  std::transform(A_rowptr.begin(), A_rowptr.begin() + rowptrSize, rowptr.begin(),
+  data.rowptr.resize(rowptrSize);
+  std::transform(A_rowptr.begin(), A_rowptr.begin() + rowptrSize, data.rowptr.begin(),
     [](int64_t value) { return static_cast<size_t>(value); });
 
-  std::vector<local_ordinal_type> colind(nnzOwnedRows);
-  std::transform(A_colind.begin(), A_colind.begin() + nnzOwnedRows, colind.begin(),
+  data.colind.resize(nnzOwnedRows);
+  std::transform(A_colind.begin(), A_colind.begin() + nnzOwnedRows, data.colind.begin(),
     [](int64_t value) { return static_cast<local_ordinal_type>(value); });
 
-  std::vector<double> values(nnzOwnedRows);
-  std::copy(A_nzval.begin(), A_nzval.begin() + nnzOwnedRows, values.begin());
+  data.values.resize(nnzOwnedRows);
+  std::copy(A_nzval.begin(), A_nzval.begin() + nnzOwnedRows, data.values.begin());
 
-  Teuchos::ArrayRCP<size_t> rowptrView(rowptr.data(), 0, rowptr.size(), false);
-  Teuchos::ArrayRCP<local_ordinal_type> colindView(colind.data(), 0, colind.size(), false);
-  Teuchos::ArrayRCP<double> valuesView(values.data(), 0, values.size(), false);
+  Teuchos::ArrayRCP<size_t> rowptrView(data.rowptr.data(), 0, data.rowptr.size(), false);
+  Teuchos::ArrayRCP<local_ordinal_type> colindView(data.colind.data(), 0, data.colind.size(), false);
+  Teuchos::ArrayRCP<double> valuesView(data.values.data(), 0, data.values.size(), false);
 
   data.matrix = rcp(new crs_matrix_type(data.rowMap, data.colMap, rowptrView, colindView, valuesView));
   data.matrix->fillComplete();

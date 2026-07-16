@@ -16,6 +16,9 @@ struct TpetraMatrixData {
   RCP<const Tpetra_map> rowMap;
   RCP<const Tpetra_map> colMap;
   RCP<crs_matrix_type> matrix;
+  std::vector<size_t> rowptr;
+  std::vector<local_ordinal_type> colind;
+  std::vector<double> values;
 };
 
 struct TpetraVectorData {
