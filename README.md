@@ -264,6 +264,6 @@ src/Sharedlib/configure.sh
 [ci-img]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml/badge.svg
 [ci-url]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml
 [docs-img]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/Documentation.yml/badge.svg
-[docs-url]: https://shreyas02.github.io/GridapTrilinos.jl/
+[docs-url]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/Documentation.yml
 [codecov-img]: https://codecov.io/gh/shreyas02/GridapTrilinos.jl/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/shreyas02/GridapTrilinos.jl
