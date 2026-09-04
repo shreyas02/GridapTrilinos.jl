@@ -1,5 +1,9 @@
 # GridapTrilinos.jl
 
+[![CI][ci-img]][ci-url]
+[![Documentation][docs-img]][docs-url]
+[![codecov][codecov-img]][codecov-url]
+
 GridapTrilinos is a Julia interface for using Trilinos linear solvers from
 Gridap/GridapDistributed workflows. The Julia side provides a `TrilinosSolve`
 linear solver; the Trilinos, Tpetra, Belos, Thyra, FROSch, and Kokkos calls live
@@ -236,12 +240,6 @@ Run the package tests from the repository root:
 julia --project=. test/runtests.jl
 ```
 
-To collect local Julia coverage:
-
-```bash
-julia --project=. --code-coverage=user test/runtests.jl
-```
-
 The default run skips the MPI solves. To run both Poisson MPI tutorials:
 
 ```bash
@@ -262,3 +260,10 @@ Rebuild the C++ library after changing files in `src/Sharedlib/`:
 ```bash
 src/Sharedlib/configure.sh
 ```
+
+[ci-img]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml/badge.svg
+[ci-url]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml
+[docs-img]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/Documentation.yml/badge.svg
+[docs-url]: https://shreyas02.github.io/GridapTrilinos.jl/
+[codecov-img]: https://codecov.io/gh/shreyas02/GridapTrilinos.jl/branch/main/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/shreyas02/GridapTrilinos.jl

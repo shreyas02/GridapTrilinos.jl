@@ -11,5 +11,7 @@
 - Clarified the public API as `TrilinosSolve`, `SolverResult`, `log`, and the
   solver-result accessors.
 - Added Documenter.jl documentation and docstrings for the public API.
-- Added TagBot, documentation, and Codecov workflow configuration.
+- Added a GitHub Actions documentation workflow.
+- Added TagBot release automation.
+- Added Codecov/code-coverage workflow configuration.
 - Added GitHub repository description and topics for package discovery.
