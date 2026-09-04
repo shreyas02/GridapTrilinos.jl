@@ -8,9 +8,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # -------------------------------------------------------------------
 # 1. Output Directories
 # -------------------------------------------------------------------
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/..")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/..")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/..")
+get_filename_component(PROJECT_DIR "${CMAKE_SOURCE_DIR}/../.." ABSOLUTE)
+set(GRIDAPTRILINOS_LIBRARY_OUTPUT_DIR "${PROJECT_DIR}/deps/usr/lib" CACHE PATH
+  "Directory where the GridapTrilinos shared library is written")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${GRIDAPTRILINOS_LIBRARY_OUTPUT_DIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${GRIDAPTRILINOS_LIBRARY_OUTPUT_DIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${GRIDAPTRILINOS_LIBRARY_OUTPUT_DIR}")
 
 # Disable Kokkos warning about not supporting C++ extensions
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -58,10 +61,6 @@ MESSAGE("End of Trilinos details\n")
 # -------------------------------------------------------------------
 # 3. Dynamic Path Extraction
 # -------------------------------------------------------------------
-# Resolve the Julia project root relative to this CMake file instead of
-# relying on DrWatson activation from within package-internal source.
-get_filename_component(PROJECT_DIR "${CMAKE_SOURCE_DIR}/../.." ABSOLUTE)
-
 execute_process(
   COMMAND julia --project=${PROJECT_DIR}/ -e "using libcxxwrap_julia_jll; print(libcxxwrap_julia_jll.artifact_dir)"
   OUTPUT_VARIABLE LIBCXXWRAP_ARTIFACT_DIR

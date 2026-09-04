@@ -1,6 +1,7 @@
 name = "GridapTrilinos"
 uuid = "fd8928cd-657a-5e46-9bb5-36bf17cf2d1c"
 authors = ["Shreyas Prashanth"]
+version = "0.1.0"
 
 [deps]
 CxxWrap = "1f15a43c-97ca-5a2a-ae31-89f07a497df4"

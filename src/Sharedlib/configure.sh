@@ -12,7 +12,9 @@ echo "Using Trilinos installation at: $TRILINOS_ROOT"
 
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SOURCE_DIR}/../.." && pwd)"
-BUILD_DIR="${SOURCE_DIR}/build"
+BUILD_DIR="${PROJECT_DIR}/deps/build/GridapTrilinos"
+INSTALL_DIR="${PROJECT_DIR}/deps/usr"
+LIB_DIR="${INSTALL_DIR}/lib"
 
 julia --project="${PROJECT_DIR}" -e '
 using MPIPreferences
@@ -42,10 +44,11 @@ elif [ -d "${TRILINOS_ROOT}/lib64/cmake/Trilinos" ]; then
     export Trilinos_DIR="${TRILINOS_ROOT}/lib64/cmake/Trilinos"
 fi
 
-mkdir -p "${BUILD_DIR}"
+mkdir -p "${BUILD_DIR}" "${LIB_DIR}"
 cd "${BUILD_DIR}" || exit 1
 
 cmake \
+    -DGRIDAPTRILINOS_LIBRARY_OUTPUT_DIR="${LIB_DIR}" \
     "${SOURCE_DIR}"
 
 cmake --build "${BUILD_DIR}"

@@ -1,5 +1,8 @@
 # GridapTrilinos.jl
 
+[![CI](https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/shreyas02/GridapTrilinos.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/shreyas02/GridapTrilinos.jl)
+
 GridapTrilinos is a Julia interface for using Trilinos linear solvers from
 Gridap/GridapDistributed workflows. The Julia side provides a `TrilinosSolve`
 linear solver; the Trilinos, Tpetra, Belos, Thyra, FROSch, and Kokkos calls live
@@ -24,7 +27,10 @@ Pkg.activate(".")
 Pkg.instantiate()
 ```
 
-This installs the Julia dependencies listed in `Project.toml`.
+This installs the Julia dependencies listed in `Project.toml`. The package can
+be installed without Trilinos. Without the optional C++ shared library, `using
+GridapTrilinos` and `TrilinosSolve(...)` work, while calls that need Trilinos
+throw an error explaining how to build the backend.
 
 ## MPI Compatibility
 
@@ -80,10 +86,10 @@ export TRILINOS_ROOT=/path/to/TrilinosInstall
 src/Sharedlib/configure.sh
 ```
 
-The build configures CMake in `src/Sharedlib/build/` and creates:
+The build configures CMake in `deps/build/GridapTrilinos/` and creates:
 
 ```text
-src/GridapTrilinos.so
+deps/usr/lib/GridapTrilinos.so
 ```
 
 This file is generated and ignored by git. If it is missing, `using
@@ -158,7 +164,7 @@ Loading the package performs the CxxWrap and Kokkos setup:
 using GridapTrilinos
 ```
 
-When `src/GridapTrilinos.so` exists, the package:
+When `deps/usr/lib/GridapTrilinos.so` exists, the package:
 
 - loads the C++ module with CxxWrap,
 - calls `KokkosInitialize()` during Julia module initialisation,
@@ -194,8 +200,32 @@ result.residual
 result.solve_time
 ```
 
-The lower-level C++ wrapper functions are implementation details; typical
-Gridap usage should go through `TrilinosSolve`.
+## Public API
+
+The public API is:
+
+- `TrilinosSolve`
+- `SolverResult`
+- `log`
+- `name`, `num_iters`, `residual`, `solve_time`, `verbose`, and `depth`
+
+The lower-level C++ wrapper functions, Kokkos lifecycle hooks, setup structs,
+and Tpetra construction helpers are implementation details. Typical Gridap usage
+should go through `TrilinosSolve`.
+
+## Repository Metadata
+
+Suggested GitHub description:
+
+```text
+Gridap linear solver interface for Trilinos through CxxWrap, Tpetra, Thyra, Belos, and FROSch.
+```
+
+Suggested GitHub topics:
+
+```text
+julia, gridap, trilinos, finite-element-method, linear-solvers, mpi, cxxwrap, tpetra, thyra, belos, frosch
+```
 
 ## Development Checks
 
@@ -203,6 +233,12 @@ Run the package tests from the repository root:
 
 ```bash
 julia --project=. test/runtests.jl
+```
+
+To collect local Julia coverage:
+
+```bash
+julia --project=. --code-coverage=user test/runtests.jl
 ```
 
 The default run skips the MPI solves. To run both Poisson MPI tutorials:

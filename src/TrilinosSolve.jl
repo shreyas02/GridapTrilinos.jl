@@ -1,5 +1,20 @@
 #######################
 ## Begin Trilinos Solve 
+"""
+    TrilinosSolve(parameter_file::AbstractString)
+
+Create a Gridap linear solver backed by Trilinos, using the XML parameter file
+at `parameter_file`.
+
+`TrilinosSolve` implements `Gridap.Algebra.LinearSolver`. Numerical setup builds
+a distributed Tpetra matrix and caches the Trilinos solver state so repeated
+`solve!` calls can reuse it. The latest solve metadata is available as
+`solver.log` after a solve completes.
+
+The package can be loaded without the optional C++ shared library. In that mode
+constructing `TrilinosSolve` still succeeds, but setup or solve calls that need
+Trilinos throw an error explaining how to build the backend.
+"""
 struct TrilinosSolve <: Gridap.Algebra.LinearSolver
     parameter_file::String
     log::Base.RefValue{Union{Nothing,SolverResultAllocated}}

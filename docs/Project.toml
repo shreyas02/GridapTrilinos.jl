@@ -1,0 +1,6 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+GridapTrilinos = "fd8928cd-657a-5e46-9bb5-36bf17cf2d1c"
+
+[compat]
+Documenter = "1"
