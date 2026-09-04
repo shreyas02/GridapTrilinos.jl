@@ -1,7 +1,8 @@
 # GridapTrilinos.jl
 
 [![CI][ci-img]][ci-url]
-[![Documentation][docs-img]][docs-url]
+[![Documentation: stable][docs-stable-img]][docs-stable-url]
+[![Documentation: dev][docs-dev-img]][docs-dev-url]
 [![codecov][codecov-img]][codecov-url]
 
 GridapTrilinos is a Julia interface for using Trilinos linear solvers from
@@ -10,10 +11,6 @@ linear solver; the Trilinos, Tpetra, Belos, Thyra, FROSch, and Kokkos calls live
 in a small C++ shared library exposed with CxxWrap.
 
 Release notes are kept in [`NEWS.md`](NEWS.md).
-
-Documentation:
-[`stable`][docs-stable-url] |
-[`dev`][docs-dev-url]
 
 ## Workflow
 
@@ -267,9 +264,9 @@ src/Sharedlib/configure.sh
 
 [ci-img]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml/badge.svg
 [ci-url]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml
-[docs-img]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/Documentation.yml/badge.svg
-[docs-url]: https://shreyas02.github.io/GridapTrilinos.jl/stable/
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docs-stable-url]: https://shreyas02.github.io/GridapTrilinos.jl/stable/
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://shreyas02.github.io/GridapTrilinos.jl/dev/
 [codecov-img]: https://codecov.io/gh/shreyas02/GridapTrilinos.jl/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/shreyas02/GridapTrilinos.jl
