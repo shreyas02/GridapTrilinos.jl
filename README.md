@@ -11,6 +11,10 @@ in a small C++ shared library exposed with CxxWrap.
 
 Release notes are kept in [`NEWS.md`](NEWS.md).
 
+Documentation:
+[`stable`][docs-stable-url] |
+[`dev`][docs-dev-url]
+
 ## Workflow
 
 There are four parts to the workflow:
@@ -264,6 +268,8 @@ src/Sharedlib/configure.sh
 [ci-img]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml/badge.svg
 [ci-url]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml
 [docs-img]: https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/Documentation.yml/badge.svg
-[docs-url]: https://shreyas02.github.io/GridapTrilinos.jl/dev/
+[docs-url]: https://shreyas02.github.io/GridapTrilinos.jl/stable/
+[docs-stable-url]: https://shreyas02.github.io/GridapTrilinos.jl/stable/
+[docs-dev-url]: https://shreyas02.github.io/GridapTrilinos.jl/dev/
 [codecov-img]: https://codecov.io/gh/shreyas02/GridapTrilinos.jl/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/shreyas02/GridapTrilinos.jl
