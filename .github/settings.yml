@@ -1,0 +1,16 @@
+repository:
+  description: >-
+    Gridap linear solver interface for Trilinos through CxxWrap, Tpetra,
+    Thyra, Belos, and FROSch.
+  topics:
+    - julia
+    - gridap
+    - trilinos
+    - finite-element-method
+    - linear-solvers
+    - mpi
+    - cxxwrap
+    - tpetra
+    - thyra
+    - belos
+    - frosch
