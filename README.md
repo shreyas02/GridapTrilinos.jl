@@ -1,12 +1,11 @@
 # GridapTrilinos.jl
 
-[![CI](https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/shreyas02/GridapTrilinos.jl/actions/workflows/CI.yml)
-[![codecov](https://codecov.io/gh/shreyas02/GridapTrilinos.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/shreyas02/GridapTrilinos.jl)
-
 GridapTrilinos is a Julia interface for using Trilinos linear solvers from
 Gridap/GridapDistributed workflows. The Julia side provides a `TrilinosSolve`
 linear solver; the Trilinos, Tpetra, Belos, Thyra, FROSch, and Kokkos calls live
 in a small C++ shared library exposed with CxxWrap.
+
+Release notes are kept in [`NEWS.md`](NEWS.md).
 
 ## Workflow
 
@@ -218,13 +217,15 @@ should go through `TrilinosSolve`.
 Suggested GitHub description:
 
 ```text
-Gridap linear solver interface for Trilinos through CxxWrap, Tpetra, Thyra, Belos, and FROSch.
+Gridap linear solver interface for Trilinos through CxxWrap, Tpetra, Thyra,
+Belos, and FROSch.
 ```
 
 Suggested GitHub topics:
 
 ```text
-julia, gridap, trilinos, finite-element-method, linear-solvers, mpi, cxxwrap, tpetra, thyra, belos, frosch
+julia, gridap, trilinos, finite-element-method, linear-solvers, mpi, cxxwrap,
+tpetra, thyra, belos, frosch
 ```
 
 ## Development Checks

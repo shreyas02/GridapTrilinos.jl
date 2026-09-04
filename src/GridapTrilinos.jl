@@ -9,7 +9,13 @@ module GridapTrilinos
   export TrilinosSolve, SolverResult, log
   export num_iters, residual, solve_time, name, verbose, depth
 
-  const _sharedlib_path = joinpath(dirname(@__DIR__), "deps", "usr", "lib", "GridapTrilinos")
+  const _sharedlib_path = joinpath(
+    dirname(@__DIR__),
+    "deps",
+    "usr",
+    "lib",
+    "GridapTrilinos",
+  )
   const _sharedlib_file = _sharedlib_path * "." * Libdl.dlext
 
   function _probe_sharedlib()
@@ -37,22 +43,25 @@ module GridapTrilinos
     function _missing_sharedlib()
       if isfile(_sharedlib_file) && MPIPreferences.binary != "system"
         error(
-          "GridapTrilinos found $(_sharedlib_file), but MPI.jl is configured to use " *
-          "$(MPIPreferences.binary). Configure MPI.jl to use the same system MPI as " *
-          "Trilinos with `MPIPreferences.use_system_binary(...)`, restart Julia, " *
-          "then rebuild GridapTrilinos.",
+          "GridapTrilinos found $(_sharedlib_file), but MPI.jl is " *
+          "configured to use $(MPIPreferences.binary). Configure MPI.jl " *
+          "to use the same system MPI as Trilinos with " *
+          "`MPIPreferences.use_system_binary(...)`, restart Julia, then " *
+          "rebuild GridapTrilinos.",
         )
       end
       if isfile(_sharedlib_file) && _sharedlib_load_error !== nothing
         error(
-          "GridapTrilinos found $(_sharedlib_file), but it could not be loaded: " *
-          "$(_sharedlib_load_error). Ensure the Trilinos and MPI shared libraries " *
-          "used to build GridapTrilinos are available in the dynamic linker path.",
+          "GridapTrilinos found $(_sharedlib_file), but it could not be " *
+          "loaded: $(_sharedlib_load_error). Ensure the Trilinos and MPI " *
+          "shared libraries used to build GridapTrilinos are available in " *
+          "the dynamic linker path.",
         )
       end
       error(
         "GridapTrilinos shared library was not found at $(_sharedlib_file). " *
-        "Set TRILINOS_ROOT and run `Pkg.build(\"GridapTrilinos\")` to enable Trilinos solves.",
+        "Set TRILINOS_ROOT and run `Pkg.build(\"GridapTrilinos\")` to " *
+        "enable Trilinos solves.",
       )
     end
 
@@ -63,17 +72,28 @@ module GridapTrilinos
     CopySolutionWrapper(args...) = _missing_sharedlib()
     KokkosInitialize() = nothing
     KokkosFinalize() = nothing
-    num_iters(result::Union{SolverResultAllocated,SolverResultDereferenced}) = _missing_sharedlib()
-    residual(result::Union{SolverResultAllocated,SolverResultDereferenced}) = _missing_sharedlib()
-    solve_time(result::Union{SolverResultAllocated,SolverResultDereferenced}) = _missing_sharedlib()
-    name(result::Union{SolverResultAllocated,SolverResultDereferenced}) = _missing_sharedlib()
-    verbose(result::Union{SolverResultAllocated,SolverResultDereferenced}) = _missing_sharedlib()
-    depth(result::Union{SolverResultAllocated,SolverResultDereferenced}) = _missing_sharedlib()
+    const MissingSolverResult =
+      Union{SolverResultAllocated,SolverResultDereferenced}
+
+    num_iters(result::MissingSolverResult) = _missing_sharedlib()
+    residual(result::MissingSolverResult) = _missing_sharedlib()
+    solve_time(result::MissingSolverResult) = _missing_sharedlib()
+    name(result::MissingSolverResult) = _missing_sharedlib()
+    verbose(result::MissingSolverResult) = _missing_sharedlib()
+    depth(result::MissingSolverResult) = _missing_sharedlib()
   end
 
-  const WrappedSolverResult = Union{SolverResultAllocated,SolverResultDereferenced}
+  const WrappedSolverResult =
+    Union{SolverResultAllocated,SolverResultDereferenced}
 
-  const _solver_result_properties = (:num_iters, :residual, :solve_time, :name, :verbose, :depth)
+  const _solver_result_properties = (
+    :num_iters,
+    :residual,
+    :solve_time,
+    :name,
+    :verbose,
+    :depth,
+  )
 
   """
       SolverResult
@@ -104,8 +124,13 @@ module GridapTrilinos
     return getfield(result, element)
   end
 
-  Base.propertynames(::WrappedSolverResult, private::Bool=false) =
-    private ? (_solver_result_properties..., fieldnames(SolverResultAllocated)...) : _solver_result_properties
+  function Base.propertynames(::WrappedSolverResult, private::Bool=false)
+    if private
+      allocated_fields = fieldnames(SolverResultAllocated)
+      return (_solver_result_properties..., allocated_fields...)
+    end
+    return _solver_result_properties
+  end
 
   include("TrilinosSolve.jl")
 

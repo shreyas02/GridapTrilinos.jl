@@ -15,7 +15,7 @@
 // MPI
 #include <mpi.h>
 
-// Solvers Amesos2 and Belos  
+// Solvers Amesos2 and Belos
 #include <Amesos2.hpp>
 #include <BelosConfigDefs.hpp>
 #include <BelosLinearProblem.hpp>
@@ -37,7 +37,7 @@
 #include <Teuchos_XMLParameterListHelpers.hpp>
 #include <Teuchos_AbstractFactoryStd.hpp>
 
-// Thyra 
+// Thyra
 #include <Thyra_LinearOpWithSolveBase.hpp>
 #include <Thyra_VectorBase.hpp>
 #include <Thyra_SolveSupportTypes.hpp>
@@ -59,7 +59,7 @@
 #include <Stratimikos_FROSch_def.hpp>
 #include <Stratimikos_LinearSolverBuilder.hpp>
 
-// Tpetra 
+// Tpetra
 #include <Tpetra_Core.hpp>
 #include <Tpetra_CrsMatrix.hpp>
 #include <Tpetra_Map.hpp>
@@ -67,8 +67,8 @@
 #include <Tpetra_Vector.hpp>
 #include <Tpetra_Version.hpp>
 
-// Kokkos 
-#include <Kokkos_Core.hpp> 
+// Kokkos
+#include <Kokkos_Core.hpp>
 
 // jlcxx
 #include <jlcxx/jlcxx.hpp>
@@ -89,7 +89,7 @@ typedef Tpetra::MultiVector<> multivec_type;
 typedef Tpetra::Vector<> vec_type;
 typedef multivec_type::scalar_type scalar_type;
 typedef multivec_type::local_ordinal_type local_ordinal_type;
-typedef multivec_type::global_ordinal_type global_ordinal_type; 
+typedef multivec_type::global_ordinal_type global_ordinal_type;
 typedef crs_matrix_type::node_type node_type;
 
 // Define the scalar traits and magnitude type
@@ -100,7 +100,8 @@ typedef typename scalar_traits::magnitudeType magnitude_type;
 typedef Tpetra::Operator<scalar_type> tpetra_operator;
 typedef Tpetra::MultiVector<scalar_type> multivec;
 
-inline void enableIfpack2Preconditioner(Stratimikos::DefaultLinearSolverBuilder& builder)
+inline void enableIfpack2Preconditioner(
+  Stratimikos::DefaultLinearSolverBuilder& builder)
 {
   const RCP<const ParameterList> precValidParams =
     sublist(builder.getValidParameters(), "Preconditioner Types");
@@ -108,7 +109,9 @@ inline void enableIfpack2Preconditioner(Stratimikos::DefaultLinearSolverBuilder&
   if (!precValidParams->isParameter("Ifpack2")) {
     using Base = Thyra::PreconditionerFactoryBase<scalar_type>;
     using Impl = Thyra::Ifpack2PreconditionerFactory<crs_matrix_type>;
-    builder.setPreconditioningStrategyFactory(abstractFactoryStd<Base, Impl>(), "Ifpack2");
+    builder.setPreconditioningStrategyFactory(
+      abstractFactoryStd<Base, Impl>(),
+      "Ifpack2");
   }
 }
 

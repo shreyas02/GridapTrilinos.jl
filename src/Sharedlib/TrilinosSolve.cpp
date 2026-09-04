@@ -12,24 +12,36 @@ TrilinosSolverCache TrilinosSolve(
 
   // Accept both plain Stratimikos XML files and files where the solver list is
   // nested under "Thyra Solver List".
-  RCP<ParameterList> parameterList = getParametersFromXmlFile(parameterFilePath);
+  RCP<ParameterList> parameterList =
+    getParametersFromXmlFile(parameterFilePath);
   RCP<ParameterList> thyraList = parameterList;
   if (parameterList->isSublist("Thyra Solver List")) {
     thyraList = sublist(parameterList, "Thyra Solver List");
   }
-  solverCache.linearSolverName = thyraList->get<std::string>("Linear Solver Type");
-  solverCache.preconditionerName = thyraList->get("Preconditioner Type", "None");
+  solverCache.linearSolverName =
+    thyraList->get<std::string>("Linear Solver Type");
+  solverCache.preconditionerName =
+    thyraList->get("Preconditioner Type", "None");
 
-  // Wrap the existing Tpetra matrix; the LOWS object owns the setup/factorization state.
+  // Wrap the existing Tpetra matrix; the LOWS object owns the setup state.
   auto thyraA =
-    Thyra::createConstLinearOp<scalar_type, local_ordinal_type, global_ordinal_type, node_type>(A);
+    Thyra::createConstLinearOp<
+      scalar_type,
+      local_ordinal_type,
+      global_ordinal_type,
+      node_type>(A);
 
   // Build the generic Stratimikos solver factory from the Thyra XML list.
   Stratimikos::DefaultLinearSolverBuilder builder;
-  Stratimikos::enableFROSch<scalar_type, local_ordinal_type, global_ordinal_type, node_type>(builder);
+  Stratimikos::enableFROSch<
+    scalar_type,
+    local_ordinal_type,
+    global_ordinal_type,
+    node_type>(builder);
   builder.setParameterList(thyraList);
   auto solverFactory = Thyra::createLinearSolveStrategy(builder);
-  solverCache.solver = Thyra::linearOpWithSolve<scalar_type>(*solverFactory, thyraA);
+  solverCache.solver =
+    Thyra::linearOpWithSolve<scalar_type>(*solverFactory, thyraA);
   (void)verbose;
 
   return solverCache;
@@ -51,17 +63,30 @@ TrilinosSolveData TrilinosSolve(
   x->putScalar(Teuchos::ScalarTraits<scalar_type>::zero());
 
   auto thyraB =
-    Thyra::createConstMultiVector<scalar_type, local_ordinal_type, global_ordinal_type, node_type>(
+    Thyra::createConstMultiVector<
+      scalar_type,
+      local_ordinal_type,
+      global_ordinal_type,
+      node_type>(
       rcp_implicit_cast<const multivec_type>(b));
   auto thyraX =
-    Thyra::createMultiVector<scalar_type, local_ordinal_type, global_ordinal_type, node_type>(
+    Thyra::createMultiVector<
+      scalar_type,
+      local_ordinal_type,
+      global_ordinal_type,
+      node_type>(
       rcp_implicit_cast<multivec_type>(x));
 
   // Solve A*x = b through Thyra, reusing any setup held by the LOWS object.
   timer.start();
   Thyra::SolveStatus<scalar_type> solveStatus =
-    Thyra::solve<scalar_type>(*solverCache.solver, Thyra::NOTRANS, *thyraB, thyraX.ptr());
-  const bool success = (solveStatus.solveStatus == Thyra::SOLVE_STATUS_CONVERGED);
+    Thyra::solve<scalar_type>(
+      *solverCache.solver,
+      Thyra::NOTRANS,
+      *thyraB,
+      thyraX.ptr());
+  const bool success =
+    (solveStatus.solveStatus == Thyra::SOLVE_STATUS_CONVERGED);
   if (success) {
     if (verbose)
       std::cout << "\nEnd Result: Problem Solved!" << std::endl;
@@ -73,12 +98,17 @@ TrilinosSolveData TrilinosSolve(
 
   // Store a small Julia-facing solve log.
   data.result.name =
-    solverCache.linearSolverName + " + " + solverCache.preconditionerName + " Preconditioner";
+    solverCache.linearSolverName +
+    " + " +
+    solverCache.preconditionerName +
+    " Preconditioner";
   if (!solveStatus.extraParameters.is_null()) {
-    data.result.num_iters = solveStatus.extraParameters->get("Iteration Count", 0);
+    data.result.num_iters =
+      solveStatus.extraParameters->get("Iteration Count", 0);
   }
   data.result.residual =
-    solveStatus.achievedTol == Thyra::SolveStatus<scalar_type>::unknownTolerance()
+    solveStatus.achievedTol ==
+      Thyra::SolveStatus<scalar_type>::unknownTolerance()
       ? 0.0
       : solveStatus.achievedTol;
   data.result.solve_time = timer.totalElapsedTime();
@@ -94,6 +124,7 @@ TrilinosSolveData TrilinosSolve(
   const std::string& parameterFilePath,
   bool verbose) {
 
-  TrilinosSolverCache solverCache = TrilinosSolve(A, parameterFilePath, verbose);
+  TrilinosSolverCache solverCache =
+    TrilinosSolve(A, parameterFilePath, verbose);
   return TrilinosSolve(solverCache, b, verbose);
 }

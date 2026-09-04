@@ -26,7 +26,17 @@ if(DEFINED ENV{Trilinos_DIR} AND NOT "$ENV{Trilinos_DIR}" STREQUAL "")
   set(Trilinos_DIR "$ENV{Trilinos_DIR}")
 endif()
 
-find_package(Trilinos REQUIRED COMPONENTS Amesos2 Teuchos Tpetra Belos Thyra Stratimikos Ifpack2 ShyLU_DDFROSch Xpetra MueLu)
+find_package(Trilinos REQUIRED COMPONENTS
+  Amesos2
+  Teuchos
+  Tpetra
+  Belos
+  Thyra
+  Stratimikos
+  Ifpack2
+  ShyLU_DDFROSch
+  Xpetra
+  MueLu)
 
 # Make sure to use same compilers and flags as Trilinos
 set(CMAKE_CXX_COMPILER ${Trilinos_CXX_COMPILER})
@@ -34,7 +44,8 @@ set(CMAKE_C_COMPILER ${Trilinos_C_COMPILER})
 set(CMAKE_Fortran_COMPILER ${Trilinos_Fortran_COMPILER})
 set(CMAKE_CXX_FLAGS  "${Trilinos_CXX_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
 set(CMAKE_C_FLAGS  "${Trilinos_C_COMPILER_FLAGS} ${CMAKE_C_FLAGS}")
-set(CMAKE_Fortran_FLAGS  "${Trilinos_Fortran_COMPILER_FLAGS} ${CMAKE_Fortran_FLAGS}")
+set(CMAKE_Fortran_FLAGS
+  "${Trilinos_Fortran_COMPILER_FLAGS} ${CMAKE_Fortran_FLAGS}")
 
 # Now enable the languages using the Trilinos compilers
 enable_language(C)
@@ -62,35 +73,43 @@ MESSAGE("End of Trilinos details\n")
 # 3. Dynamic Path Extraction
 # -------------------------------------------------------------------
 execute_process(
-  COMMAND julia --project=${PROJECT_DIR}/ -e "using libcxxwrap_julia_jll; print(libcxxwrap_julia_jll.artifact_dir)"
+  COMMAND julia --project=${PROJECT_DIR}/ -e
+    "using libcxxwrap_julia_jll; print(libcxxwrap_julia_jll.artifact_dir)"
   OUTPUT_VARIABLE LIBCXXWRAP_ARTIFACT_DIR
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
 execute_process(
-  COMMAND julia --project=${PROJECT_DIR}/ -e "print(normpath(Sys.BINDIR, \"..\", \"include\", \"julia\"))"
+  COMMAND julia --project=${PROJECT_DIR}/ -e
+    "print(normpath(Sys.BINDIR, \"..\", \"include\", \"julia\"))"
   OUTPUT_VARIABLE JULIA_INCLUDE_DIR
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
 execute_process(
-  COMMAND julia --project=${PROJECT_DIR}/ -e "using Libdl; print(Libdl.dlpath(\"libjulia\"))"
+  COMMAND julia --project=${PROJECT_DIR}/ -e
+    "using Libdl; print(Libdl.dlpath(\"libjulia\"))"
   OUTPUT_VARIABLE JULIA_LIBJULIA
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
 get_filename_component(JULIA_LIBRARY_DIR "${JULIA_LIBJULIA}" DIRECTORY)
+set(CXXWRAP_JULIA_LIB_DIR "${LIBCXXWRAP_ARTIFACT_DIR}/lib")
 
 # Safely find the CxxWrap library regardless of OS (.so, .dylib, .dll)
 find_library(CXXWRAP_JULIA_LIB
   NAMES cxxwrap_julia libcxxwrap_julia
-  PATHS "${LIBCXXWRAP_ARTIFACT_DIR}/lib" 
+  PATHS "${CXXWRAP_JULIA_LIB_DIR}"
   NO_DEFAULT_PATH
 )
 
 if(NOT CXXWRAP_JULIA_LIB)
-  file(GLOB CXXWRAP_JULIA_VERSIONED_LIBS "${LIBCXXWRAP_ARTIFACT_DIR}/lib/libcxxwrap_julia${CMAKE_SHARED_LIBRARY_SUFFIX}*")
-  list(FILTER CXXWRAP_JULIA_VERSIONED_LIBS EXCLUDE REGEX ".*_stl${CMAKE_SHARED_LIBRARY_SUFFIX}.*")
+  set(CXXWRAP_JULIA_LIB_PATTERN
+    "libcxxwrap_julia${CMAKE_SHARED_LIBRARY_SUFFIX}*")
+  file(GLOB CXXWRAP_JULIA_VERSIONED_LIBS
+    "${CXXWRAP_JULIA_LIB_DIR}/${CXXWRAP_JULIA_LIB_PATTERN}")
+  list(FILTER CXXWRAP_JULIA_VERSIONED_LIBS EXCLUDE REGEX
+    ".*_stl${CMAKE_SHARED_LIBRARY_SUFFIX}.*")
   list(LENGTH CXXWRAP_JULIA_VERSIONED_LIBS CXXWRAP_JULIA_VERSIONED_LIB_COUNT)
   if(CXXWRAP_JULIA_VERSIONED_LIB_COUNT GREATER 0)
     list(GET CXXWRAP_JULIA_VERSIONED_LIBS 0 CXXWRAP_JULIA_LIB)
@@ -98,23 +117,28 @@ if(NOT CXXWRAP_JULIA_LIB)
 endif()
 
 if(NOT CXXWRAP_JULIA_LIB)
-  message(FATAL_ERROR "Could not find libcxxwrap_julia in ${LIBCXXWRAP_ARTIFACT_DIR}/lib")
+  message(FATAL_ERROR
+    "Could not find libcxxwrap_julia in ${LIBCXXWRAP_ARTIFACT_DIR}/lib")
 endif()
 
 # -------------------------------------------------------------------
 # 4. Target Definition and Linking
 # -------------------------------------------------------------------
 set(GRIDAPTRILINOS_SOLVE_SOURCE "TrilinosSolve.cpp")
-if(DEFINED ENV{GRIDAPTRILINOS_SOLVE_SOURCE} AND NOT "$ENV{GRIDAPTRILINOS_SOLVE_SOURCE}" STREQUAL "")
+if(DEFINED ENV{GRIDAPTRILINOS_SOLVE_SOURCE} AND
+   NOT "$ENV{GRIDAPTRILINOS_SOLVE_SOURCE}" STREQUAL "")
   set(GRIDAPTRILINOS_SOLVE_SOURCE "$ENV{GRIDAPTRILINOS_SOLVE_SOURCE}")
 endif()
 
 if(NOT IS_ABSOLUTE "${GRIDAPTRILINOS_SOLVE_SOURCE}")
-  set(GRIDAPTRILINOS_SOLVE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/${GRIDAPTRILINOS_SOLVE_SOURCE}")
+  set(GRIDAPTRILINOS_SOLVE_SOURCE
+    "${CMAKE_CURRENT_SOURCE_DIR}/${GRIDAPTRILINOS_SOLVE_SOURCE}")
 endif()
 
 if(NOT EXISTS "${GRIDAPTRILINOS_SOLVE_SOURCE}")
-  message(FATAL_ERROR "GRIDAPTRILINOS_SOLVE_SOURCE does not exist: ${GRIDAPTRILINOS_SOLVE_SOURCE}")
+  message(FATAL_ERROR
+    "GRIDAPTRILINOS_SOLVE_SOURCE does not exist: "
+    "${GRIDAPTRILINOS_SOLVE_SOURCE}")
 endif()
 
 message(STATUS "Using Trilinos solve source: ${GRIDAPTRILINOS_SOLVE_SOURCE}")
@@ -136,10 +160,10 @@ target_include_directories(GridapTrilinos PRIVATE
 )
 
 # Link with the necessary libraries
-target_link_libraries(GridapTrilinos PRIVATE 
-  ${CXXWRAP_JULIA_LIB} 
+target_link_libraries(GridapTrilinos PRIVATE
+  ${CXXWRAP_JULIA_LIB}
   ${JULIA_LIBJULIA}
-  ${Trilinos_LIBRARIES} 
+  ${Trilinos_LIBRARIES}
   ${Trilinos_TPL_LIBRARIES}
 )
 
@@ -150,6 +174,8 @@ set_target_properties(GridapTrilinos PROPERTIES
 )
 
 # MPI Related compilation options
-target_compile_definitions(GridapTrilinos PRIVATE ${MPI_CXX_COMPILE_DEFINITIONS})
+target_compile_definitions(
+  GridapTrilinos PRIVATE
+  ${MPI_CXX_COMPILE_DEFINITIONS})
 target_compile_options(GridapTrilinos PRIVATE ${MPI_CXX_COMPILE_OPTIONS})
 target_link_options(GridapTrilinos PRIVATE ${MPI_CXX_LINK_FLAGS})
