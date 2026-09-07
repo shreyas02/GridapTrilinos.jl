@@ -9,6 +9,8 @@ using Test
     @test isdefined(GridapTrilinos, :ConstructTpetraVectorWrapper)
     @test isdefined(GridapTrilinos, :TrilinosSolveWrapper)
     @test isdefined(GridapTrilinos, :CopySolutionWrapper)
+    @test log(2.0) == Base.log(2.0)
+    @test !(:log in names(GridapTrilinos))
 end
 
 include("poisson_thyra.jl")

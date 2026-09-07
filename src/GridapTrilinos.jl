@@ -1,27 +1,32 @@
+__precompile__(false)
+
 # Load the module and generate the functions
 module GridapTrilinos
   using Gridap
   using CxxWrap
   using Libdl
   using MPIPreferences
+  using Scratch
   import PartitionedArrays: local_to_global, own_to_local
 
-  export TrilinosSolve, SolverResult, log
+  export TrilinosSolve, SolverResult
   export num_iters, residual, solve_time, name, verbose, depth
 
-  const _sharedlib_path = joinpath(
-    dirname(@__DIR__),
-    "deps",
-    "usr",
-    "lib",
-    "GridapTrilinos",
-  )
-  const _sharedlib_file = _sharedlib_path * "." * Libdl.dlext
+  const _scratch_key = "trilinos-backend"
+  const _sharedlib_dir = Ref{String}()
+  const _sharedlib_file = Ref{String}()
+
+  function _set_sharedlib_path!()
+    _sharedlib_dir[] = joinpath(@get_scratch!(_scratch_key), "usr", "lib")
+    _sharedlib_file[] = joinpath(_sharedlib_dir[], "GridapTrilinos.$(Libdl.dlext)")
+    return nothing
+  end
 
   function _probe_sharedlib()
-    isfile(_sharedlib_file) || return (false, nothing)
+    _set_sharedlib_path!()
+    isfile(_sharedlib_file[]) || return (false, nothing)
     MPIPreferences.binary == "system" || return (false, nothing)
-    handle = Libdl.dlopen_e(_sharedlib_file)
+    handle = Libdl.dlopen_e(_sharedlib_file[])
     if handle == C_NULL
       return (false, Libdl.dlerror())
     end
@@ -34,34 +39,35 @@ module GridapTrilinos
   const _sharedlib_load_error = last(_sharedlib_probe)
 
   if _has_sharedlib
-    @wrapmodule(() -> _sharedlib_path)
+    @wrapmodule(() -> joinpath(_sharedlib_dir[], "GridapTrilinos"))
   else
     struct SolverResult end
     struct SolverResultAllocated end
     struct SolverResultDereferenced end
 
     function _missing_sharedlib()
-      if isfile(_sharedlib_file) && MPIPreferences.binary != "system"
+      if isfile(_sharedlib_file[]) && MPIPreferences.binary != "system"
         error(
-          "GridapTrilinos found $(_sharedlib_file), but MPI.jl is " *
+          "GridapTrilinos found $(_sharedlib_file[]), but MPI.jl is " *
           "configured to use $(MPIPreferences.binary). Configure MPI.jl " *
           "to use the same system MPI as Trilinos with " *
           "`MPIPreferences.use_system_binary(...)`, restart Julia, then " *
           "rebuild GridapTrilinos.",
         )
       end
-      if isfile(_sharedlib_file) && _sharedlib_load_error !== nothing
+      if isfile(_sharedlib_file[]) && _sharedlib_load_error !== nothing
         error(
-          "GridapTrilinos found $(_sharedlib_file), but it could not be " *
+          "GridapTrilinos found $(_sharedlib_file[]), but it could not be " *
           "loaded: $(_sharedlib_load_error). Ensure the Trilinos and MPI " *
           "shared libraries used to build GridapTrilinos are available in " *
           "the dynamic linker path.",
         )
       end
       error(
-        "GridapTrilinos shared library was not found at $(_sharedlib_file). " *
-        "Set TRILINOS_ROOT and run `Pkg.build(\"GridapTrilinos\")` to " *
-        "enable Trilinos solves.",
+        "GridapTrilinos shared library was not found at " *
+        "$(_sharedlib_file[]). Configure MPI.jl to use the same system MPI " *
+        "as Trilinos, set TRILINOS_ROOT, and run " *
+        "`Pkg.build(\"GridapTrilinos\")` to enable Trilinos solves.",
       )
     end
 
@@ -133,17 +139,6 @@ module GridapTrilinos
   end
 
   include("TrilinosSolve.jl")
-
-  """
-      log(solver::TrilinosSolve)
-
-  Return the latest `SolverResult` recorded by `solver`, or `nothing` if no
-  solve has completed.
-
-  The property form `solver.log` is stricter and throws when no result is
-  available.
-  """
-  log
 
   """
       name(result::SolverResult)

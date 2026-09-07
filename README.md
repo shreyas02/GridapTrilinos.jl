@@ -23,7 +23,14 @@ There are four parts to the workflow:
 
 ## Julia Setup
 
-From the repository root:
+For a registered installation:
+
+```julia
+using Pkg
+Pkg.add("GridapTrilinos")
+```
+
+For a source checkout, from the repository root:
 
 ```julia
 using Pkg
@@ -48,8 +55,7 @@ typical system MPI installation:
 
 ```julia
 using Pkg
-Pkg.activate(".")
-Pkg.add("MPIPreferences")
+Pkg.add("MPIPreferences") # only needed if MPIPreferences is not already in your environment
 
 using MPIPreferences
 MPIPreferences.use_system_binary()
@@ -74,29 +80,40 @@ before compiling the C++ wrapper.
 The C++ wrapper must be built before calling the Trilinos solver. Each user
 builds it locally against their Julia, MPI, and Trilinos installation.
 
-Set `TRILINOS_ROOT` to the Trilinos installation prefix, then build through
-Julia's package build step:
+After installing the package, set `TRILINOS_ROOT` to the Trilinos installation
+prefix and build through Julia's package build step:
+
+```bash
+export TRILINOS_ROOT=/path/to/TrilinosInstall
+julia -e 'using Pkg; Pkg.build("GridapTrilinos")'
+```
+
+For a source checkout with the repository environment activated, this is also
+fine:
 
 ```bash
 export TRILINOS_ROOT=/path/to/TrilinosInstall
 julia --project=. -e 'using Pkg; Pkg.build("GridapTrilinos")'
 ```
 
-This calls `deps/build.jl`, which delegates to `src/Sharedlib/configure.sh`.
-You can also call the script directly:
+This calls `deps/build.jl`, which configures CMake with paths discovered from
+the active Julia package build environment. A checked-out repository can also
+call the developer convenience script directly:
 
 ```bash
 export TRILINOS_ROOT=/path/to/TrilinosInstall
 src/Sharedlib/configure.sh
 ```
 
-The build configures CMake in `deps/build/GridapTrilinos/` and creates:
+The build configures CMake in a Julia scratch space and creates:
 
 ```text
-deps/usr/lib/GridapTrilinos.so
+DEPOT_PATH[1]/scratchspaces/<GridapTrilinos uuid>/trilinos-backend/usr/lib/GridapTrilinos.so
 ```
 
-This file is generated and ignored by git. If it is missing, `using
+This file is generated locally and is not stored inside the versioned package
+source directory, so it survives package source updates until the scratch space
+is removed by Julia's scratch-space cleanup. If it is missing, `using
 GridapTrilinos` still works, but any call into the Trilinos solver throws an
 error telling you to build the shared library first.
 
@@ -114,7 +131,7 @@ Advanced users can provide a different C++ source file at build time with
 ```bash
 export TRILINOS_ROOT=/path/to/TrilinosInstall
 export GRIDAPTRILINOS_SOLVE_SOURCE=/path/to/MyTrilinosSolve.cpp
-src/Sharedlib/configure.sh
+julia -e 'using Pkg; Pkg.build("GridapTrilinos")'
 ```
 
 Relative paths are resolved from `src/Sharedlib/`, so this also works:
@@ -168,7 +185,7 @@ Loading the package performs the CxxWrap and Kokkos setup:
 using GridapTrilinos
 ```
 
-When `deps/usr/lib/GridapTrilinos.so` exists, the package:
+When the scratch-space `GridapTrilinos.so` exists, the package:
 
 - loads the C++ module with CxxWrap,
 - calls `KokkosInitialize()` during Julia module initialisation,
@@ -210,12 +227,12 @@ The public API is:
 
 - `TrilinosSolve`
 - `SolverResult`
-- `log`
 - `name`, `num_iters`, `residual`, `solve_time`, `verbose`, and `depth`
 
 The lower-level C++ wrapper functions, Kokkos lifecycle hooks, setup structs,
 and Tpetra construction helpers are implementation details. Typical Gridap usage
-should go through `TrilinosSolve`.
+should go through `TrilinosSolve`. A solver's latest backend result is available
+as the `solver.log` property after a solve completes.
 
 ## Repository Metadata
 
@@ -238,14 +255,15 @@ tpetra, thyra, belos, frosch
 Run the package tests from the repository root:
 
 ```bash
-julia --project=. test/runtests.jl
+julia --project=. -e 'using Pkg; Pkg.test("GridapTrilinos")'
 ```
 
 The default run skips the MPI solves. To run both Poisson MPI tutorials:
 
 ```bash
 GRIDAPTRILINOS_RUN_MPI_TESTS=true \
-  mpiexecjl --project=. -n 4 julia test/runtests.jl
+  mpiexecjl --project=. -n 4 julia --startup-file=no --color=yes \
+    -e 'using Pkg; Pkg.test("GridapTrilinos")'
 ```
 
 Or run one tutorial directly:
@@ -259,6 +277,7 @@ mpiexecjl --project=. -n 4 julia test/transient_cached.jl
 Rebuild the C++ library after changing files in `src/Sharedlib/`:
 
 ```bash
+export TRILINOS_ROOT=/path/to/TrilinosInstall
 src/Sharedlib/configure.sh
 ```
 

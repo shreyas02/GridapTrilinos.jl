@@ -15,6 +15,25 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${GRIDAPTRILINOS_LIBRARY_OUTPUT_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${GRIDAPTRILINOS_LIBRARY_OUTPUT_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${GRIDAPTRILINOS_LIBRARY_OUTPUT_DIR}")
 
+set(LIBCXXWRAP_ARTIFACT_DIR "" CACHE PATH
+  "libcxxwrap_julia_jll artifact directory")
+set(JULIA_INCLUDE_DIR "" CACHE PATH
+  "Julia include directory")
+set(JULIA_LIBJULIA "" CACHE FILEPATH
+  "Path to libjulia")
+
+foreach(required_var
+    LIBCXXWRAP_ARTIFACT_DIR
+    JULIA_INCLUDE_DIR
+    JULIA_LIBJULIA)
+  if("${${required_var}}" STREQUAL "")
+    message(FATAL_ERROR
+      "${required_var} must be provided by deps/build.jl. "
+      "Run `julia -e 'using Pkg; Pkg.build(\"GridapTrilinos\")'` "
+      "instead of configuring CMake directly.")
+  endif()
+endforeach()
+
 # Disable Kokkos warning about not supporting C++ extensions
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -70,29 +89,8 @@ MESSAGE("   Trilinos_LIBRARIES = ${Trilinos_LIBRARIES}")
 MESSAGE("End of Trilinos details\n")
 
 # -------------------------------------------------------------------
-# 3. Dynamic Path Extraction
+# 3. Julia/CxxWrap Paths
 # -------------------------------------------------------------------
-execute_process(
-  COMMAND julia --project=${PROJECT_DIR}/ -e
-    "using libcxxwrap_julia_jll; print(libcxxwrap_julia_jll.artifact_dir)"
-  OUTPUT_VARIABLE LIBCXXWRAP_ARTIFACT_DIR
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-execute_process(
-  COMMAND julia --project=${PROJECT_DIR}/ -e
-    "print(normpath(Sys.BINDIR, \"..\", \"include\", \"julia\"))"
-  OUTPUT_VARIABLE JULIA_INCLUDE_DIR
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-execute_process(
-  COMMAND julia --project=${PROJECT_DIR}/ -e
-    "using Libdl; print(Libdl.dlpath(\"libjulia\"))"
-  OUTPUT_VARIABLE JULIA_LIBJULIA
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
 get_filename_component(JULIA_LIBRARY_DIR "${JULIA_LIBJULIA}" DIRECTORY)
 set(CXXWRAP_JULIA_LIB_DIR "${LIBCXXWRAP_ARTIFACT_DIR}/lib")
 
