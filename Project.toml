@@ -12,6 +12,7 @@ MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 PartitionedArrays = "5a9dfac6-5c52-46f7-8278-5e2210713be9"
 Scratch = "6c6a2e73-6563-6170-7368-637461726353"
+SparseMatricesCSR = "a0a7dd2c-ebf4-11e9-1f05-cf50bc540ca1"
 libcxxwrap_julia_jll = "3eaa8342-bff7-56a5-9981-c04077f7cee7"
 
 [compat]
@@ -27,8 +28,7 @@ julia = "1.10"
 libcxxwrap_julia_jll = "0.14"
 
 [extras]
-SparseMatricesCSR = "a0a7dd2c-ebf4-11e9-1f05-cf50bc540ca1"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["SparseMatricesCSR", "Test"]
+test = ["Test"]
