@@ -25,6 +25,7 @@
 # They contain absolute paths, and so should not be committed
 deps/deps.jl
 deps/build.log
+deps/build/
 deps/downloads/
 deps/usr/
 deps/src/
