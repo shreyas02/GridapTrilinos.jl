@@ -59,24 +59,20 @@ TpetraMatrixData ConstructTpetraMatrix(
   const size_t nnzOwnedRows = static_cast<size_t>(A_rowptr[LocRowSize]);
 
   data.rowptr.resize(rowptrSize);
-  std::transform(
-    A_rowptr.begin(),
-    A_rowptr.begin() + rowptrSize,
-    data.rowptr.begin(),
-    [](int64_t value) { return static_cast<size_t>(value); });
-
-  data.colind.resize(nnzOwnedRows);
-  std::transform(
-    A_colind.begin(),
-    A_colind.begin() + nnzOwnedRows,
-    data.colind.begin(),
-    [](int64_t value) { return static_cast<local_ordinal_type>(value); });
-
-  data.values.resize(nnzOwnedRows);
-  std::copy(
-    A_nzval.begin(),
-    A_nzval.begin() + nnzOwnedRows,
-    data.values.begin());
+  data.rowptr[0] = 0;
+  data.colind.reserve(nnzOwnedRows);
+  data.values.reserve(nnzOwnedRows);
+  for (int64_t row = 0; row < LocRowSize; ++row) {
+    for (int64_t k = A_rowptr[row]; k < A_rowptr[row + 1]; ++k) {
+      double value = A_nzval[k];
+      if (value == 0.0) {
+        continue;
+      }
+      data.colind.push_back(static_cast<local_ordinal_type>(A_colind[k]));
+      data.values.push_back(value);
+    }
+    data.rowptr[static_cast<size_t>(row + 1)] = data.values.size();
+  }
 
   Teuchos::ArrayRCP<size_t> rowptrView(
     data.rowptr.data(),
