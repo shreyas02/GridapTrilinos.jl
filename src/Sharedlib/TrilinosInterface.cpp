@@ -26,6 +26,8 @@ TpetraMatrixData ConstructTpetraMatrix(
   const RCP<const Comm<int>>& comm) {
 
   TpetraMatrixData data;
+  data.active = true;
+  data.comm = comm;
   const Tpetra::global_size_t numGblIndices = LinSysSize;
   const global_ordinal_type indexBase = 0;
 
@@ -114,8 +116,21 @@ TpetraMatrixData ConstructTpetraMatrixWrapper(
   int64_t LocRowSize,
   jlcxx::ArrayRef<int32_t> OwnToValRow) {
 
-  MPI_Comm yourComm = MPI_COMM_WORLD;
-  RCP<const Comm<int> > comm (new MpiComm<int> (yourComm));
+  MPI_Comm activeComm = MPI_COMM_NULL;
+  int worldRank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+  const int color = LocRowSize > 0 ? 1 : MPI_UNDEFINED;
+  MPI_Comm_split(MPI_COMM_WORLD, color, worldRank, &activeComm);
+
+  if (activeComm == MPI_COMM_NULL) {
+    return TpetraMatrixData{};
+  }
+
+  RCP<const OpaqueWrapper<MPI_Comm>> rawComm =
+    rcp_implicit_cast<const OpaqueWrapper<MPI_Comm>>(
+      opaqueWrapper<MPI_Comm>(activeComm, Teuchos::details::safeCommFree));
+  RCP<const Comm<int> > comm =
+    rcp_implicit_cast<const Comm<int>>(createMpiComm<int>(rawComm));
   return ConstructTpetraMatrix(
     A_nzval,
     A_colind,
@@ -137,6 +152,10 @@ TpetraVectorData ConstructTpetraVectorWrapper(
   const TpetraMatrixData& matrixData) {
 
   TpetraVectorData data;
+  if (!matrixData.active) {
+    return data;
+  }
+  data.active = true;
   data.vector = rcp(new vec_type(matrixData.rowMap));
   for (int64_t i = 0; i < LocRowSize; ++i) {
     local_ordinal_type row = static_cast<local_ordinal_type>(i);
@@ -154,6 +173,14 @@ SolverResult CopySolutionWrapper(
   int64_t LocRowSize,
   jlcxx::ArrayRef<int32_t> OwnToValSol) {
 
+  if (!solveData.active) {
+    if (LocRowSize == 0) {
+      return solveData.result;
+    }
+    throw std::runtime_error(
+      "Inactive Trilinos solve data cannot copy a nonempty solution.");
+  }
+
   auto x_data_host = solveData.x->getLocalViewHost(Tpetra::Access::ReadOnly);
   for (size_t i = 0; i < LocRowSize; ++i) {
     LocSoln[OwnToValSol[i] - 1] = x_data_host(i, 0);
@@ -167,9 +194,11 @@ TrilinosSolverCache TrilinosSolverSetupWrapper(
   const TpetraMatrixData& matrixData,
   std::string parameterFilePath) {
 
-  MPI_Comm yourComm = MPI_COMM_WORLD;
-  RCP<const Comm<int> > comm (new MpiComm<int> (yourComm));
-  const int myRank = comm->getRank ();
+  if (!matrixData.active) {
+    return TrilinosSolverCache{};
+  }
+
+  const int myRank = matrixData.comm->getRank ();
   const bool verbose = (myRank == 0); // Only print on rank 0
 
   return TrilinosSolve(
@@ -182,9 +211,11 @@ TrilinosSolveData TrilinosSolveWrapper(
   const TrilinosSolverCache& solverCache,
   const TpetraVectorData& vectorData) {
 
-  MPI_Comm yourComm = MPI_COMM_WORLD;
-  RCP<const Comm<int> > comm (new MpiComm<int> (yourComm));
-  const int myRank = comm->getRank ();
+  if (!solverCache.active || !vectorData.active) {
+    return TrilinosSolveData{};
+  }
+
+  const int myRank = vectorData.vector->getMap()->getComm()->getRank ();
   const bool verbose = (myRank == 0); // Only print on rank 0
 
   return TrilinosSolve(
@@ -198,9 +229,11 @@ TrilinosSolveData TrilinosSolveWrapper(
   const TpetraVectorData& vectorData,
   std::string parameterFilePath) {
 
-  MPI_Comm yourComm = MPI_COMM_WORLD;
-  RCP<const Comm<int> > comm (new MpiComm<int> (yourComm));
-  const int myRank = comm->getRank ();
+  if (!matrixData.active || !vectorData.active) {
+    return TrilinosSolveData{};
+  }
+
+  const int myRank = matrixData.comm->getRank ();
   const bool verbose = (myRank == 0); // Only print on rank 0
 
   return TrilinosSolve(

@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <exception>
 #include <filesystem>
+#include <stdexcept>
 #include <vector>
 
 // MPI
@@ -36,6 +37,8 @@
 #include <Teuchos_Tuple.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
 #include <Teuchos_AbstractFactoryStd.hpp>
+#include <Teuchos_DefaultMpiComm.hpp>
+#include <Teuchos_OpaqueWrapper.hpp>
 
 // Thyra
 #include <Thyra_LinearOpWithSolveBase.hpp>

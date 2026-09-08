@@ -9,6 +9,7 @@ TrilinosSolverCache TrilinosSolve(
   bool verbose) {
 
   TrilinosSolverCache solverCache;
+  solverCache.active = true;
 
   // Accept both plain Stratimikos XML files and files where the solver list is
   // nested under "Thyra Solver List".
@@ -56,6 +57,7 @@ TrilinosSolveData TrilinosSolve(
   bool verbose) {
 
   TrilinosSolveData data;
+  data.active = true;
   Teuchos::Time timer("solve_time");
 
   // Allocate the solution vector in the same Tpetra space as b.

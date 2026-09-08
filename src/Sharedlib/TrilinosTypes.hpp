@@ -13,6 +13,8 @@ struct SolverResult {
 };
 
 struct TpetraMatrixData {
+  bool active = false;
+  RCP<const Comm<int>> comm;
   RCP<const Tpetra_map> rowMap;
   RCP<const Tpetra_map> colMap;
   RCP<crs_matrix_type> matrix;
@@ -22,15 +24,18 @@ struct TpetraMatrixData {
 };
 
 struct TpetraVectorData {
+  bool active = false;
   RCP<vec_type> vector;
 };
 
 struct TrilinosSolveData {
+  bool active = false;
   RCP<vec_type> x;
   SolverResult result;
 };
 
 struct TrilinosSolverCache {
+  bool active = false;
   RCP<Thyra::LinearOpWithSolveBase<scalar_type>> solver;
   std::string linearSolverName;
   std::string preconditionerName;
